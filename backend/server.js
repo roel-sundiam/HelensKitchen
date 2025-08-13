@@ -28,15 +28,14 @@ app.use('/images', express.static(path.join(__dirname, '../frontend/public/image
 // Session configuration
 app.use(session({
   secret: process.env.SESSION_SECRET || 'helens-kitchen-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  name: 'helens_session', // Custom session name
+  resave: true,  // Changed to true to force session save
+  saveUninitialized: true,  // Changed to true
+  name: 'helens_session',
   cookie: { 
-    secure: process.env.NODE_ENV === 'production', // true in production for HTTPS
+    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // allow cross-origin in production
-    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // let browser decide
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
@@ -190,6 +189,12 @@ app.post("/api/admin/login", (req, res) => {
             }
             
             console.log('Response headers before send:', res.getHeaders());
+            
+            // Manual cookie setting as backup
+            const cookieOptions = `helens_session=${req.sessionID}; Path=/; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; SameSite=None' : 'SameSite=Lax'}; Max-Age=86400`;
+            res.setHeader('Set-Cookie', cookieOptions);
+            
+            console.log('Manual cookie set:', cookieOptions);
             
             res.json({ 
               message: "Login successful", 
