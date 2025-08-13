@@ -30,11 +30,13 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'helens-kitchen-secret-key',
   resave: false,
   saveUninitialized: false,
+  name: 'helens_session', // Custom session name
   cookie: { 
     secure: process.env.NODE_ENV === 'production', // true in production for HTTPS
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // allow cross-origin in production
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // allow cross-origin in production
+    domain: process.env.NODE_ENV === 'production' ? undefined : undefined // let browser decide
   }
 }));
 
@@ -186,6 +188,9 @@ app.post("/api/admin/login", (req, res) => {
             if (err) {
               console.error('Session save error:', err);
             }
+            
+            console.log('Response headers before send:', res.getHeaders());
+            
             res.json({ 
               message: "Login successful", 
               admin: { 
@@ -199,6 +204,8 @@ app.post("/api/admin/login", (req, res) => {
                 last_login: user.last_login
               } 
             });
+            
+            console.log('Response headers after send:', res.getHeaders());
           });
         });
       } else {
