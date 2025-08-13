@@ -35,29 +35,41 @@ export class AuthService {
   }
 
   login(username: string, password: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/login`, { username, password }, { withCredentials: true });
+    return this.http.post(`${this.apiUrl}/login`, { username, password });
   }
 
-  logout(): Observable<any> {
-    return this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true });
+  logout(): void {
+    localStorage.removeItem('auth_token');
+    this.clearAuthentication();
+    this.router.navigate(['/admin/login']);
   }
 
   checkAuthStatus(): void {
-    this.http.get(`${this.apiUrl}/verify`, { withCredentials: true }).subscribe({
-      next: (response: any) => {
-        if (response.authenticated) {
-          this.isAuthenticatedSubject.next(true);
-          this.currentAdminSubject.next(response.admin);
-        } else {
-          this.isAuthenticatedSubject.next(false);
-          this.currentAdminSubject.next(null);
+    const token = localStorage.getItem('auth_token');
+    if (token) {
+      // Verify token with backend
+      const headers = { Authorization: `Bearer ${token}` };
+      this.http.get(`${this.apiUrl}/verify`, { headers }).subscribe({
+        next: (response: any) => {
+          if (response.authenticated) {
+            this.isAuthenticatedSubject.next(true);
+            this.currentAdminSubject.next(response.admin);
+          } else {
+            this.clearTokenAndAuth();
+          }
+        },
+        error: (err) => {
+          this.clearTokenAndAuth();
         }
-      },
-      error: (err) => {
-        this.isAuthenticatedSubject.next(false);
-        this.currentAdminSubject.next(null);
-      }
-    });
+      });
+    } else {
+      this.clearAuthentication();
+    }
+  }
+
+  private clearTokenAndAuth(): void {
+    localStorage.removeItem('auth_token');
+    this.clearAuthentication();
   }
 
   setAuthenticated(admin: AdminUser): void {
@@ -76,6 +88,15 @@ export class AuthService {
 
   getCurrentAdmin(): AdminUser | null {
     return this.currentAdminSubject.value;
+  }
+
+  getAuthHeaders(): { Authorization: string } | {} {
+    const token = localStorage.getItem('auth_token');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  storeToken(token: string): void {
+    localStorage.setItem('auth_token', token);
   }
 
   logoutAndRedirect(): void {

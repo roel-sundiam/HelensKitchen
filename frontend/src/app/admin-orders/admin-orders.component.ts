@@ -71,7 +71,8 @@ export class AdminOrdersComponent implements OnInit {
 
     console.log('Loading orders with params:', params);
 
-    this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, withCredentials: true }).subscribe({
+    const headers = this.authService.getAuthHeaders();
+    this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, headers }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
         this.orders = data;
@@ -120,7 +121,7 @@ export class AdminOrdersComponent implements OnInit {
         });
         
         this.http
-          .put(`${environment.apiUrl}/admin/orders/${order.id}/status`, { status: newStatus }, { withCredentials: true })
+          .put(`${environment.apiUrl}/admin/orders/${order.id}/status`, { status: newStatus }, { headers: this.authService.getAuthHeaders() })
           .subscribe({
             next: (response) => {
               console.log('Order status update response:', response);
@@ -176,7 +177,7 @@ export class AdminOrdersComponent implements OnInit {
         this.http
           .put(`${environment.apiUrl}/admin/orders/${order.id}/payment-status`, {
             payment_status: newPaymentStatus,
-          }, { withCredentials: true })
+          }, { headers: this.authService.getAuthHeaders() })
           .subscribe({
             next: (response) => {
               console.log('Payment status update response:', response);

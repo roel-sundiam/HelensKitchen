@@ -55,6 +55,8 @@ export class AdminLogin implements OnInit {
     this.authService.login(username, password).subscribe({
       next: (response: any) => {
         console.log('Login successful:', response);
+        // Store the JWT token
+        this.authService.storeToken(response.token);
         this.authService.setAuthenticated(response.admin);
         this.router.navigate([this.returnUrl]);
       },
