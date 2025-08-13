@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 interface Order {
   id: number;
@@ -51,7 +52,7 @@ export class TrackOrderComponent {
 
     const { orderId, phone } = this.trackingForm.value;
     
-    this.http.get<Order>(`http://localhost:4000/api/track-order/${orderId}/${phone}`)
+    this.http.get<Order>(`${environment.apiUrl}/track-order/${orderId}/${phone}`)
       .subscribe({
         next: (data) => {
           this.order = data;

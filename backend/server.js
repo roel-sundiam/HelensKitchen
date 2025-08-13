@@ -15,7 +15,9 @@ async function initServer() {
 
 const app = express();
 app.use(cors({
-  origin: "http://localhost:4200",
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL || 'https://your-netlify-domain.netlify.app'
+    : "http://localhost:4200",
   credentials: true
 }));
 app.use(express.json());

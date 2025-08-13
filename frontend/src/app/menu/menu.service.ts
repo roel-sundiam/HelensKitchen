@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface MenuItem {
   id: number;
@@ -16,7 +17,7 @@ export interface MenuItem {
   providedIn: 'root',
 })
 export class MenuService {
-  private apiUrl = 'http://localhost:4000/api/menu';
+  private apiUrl = `${environment.apiUrl}/menu`;
 
   constructor(private http: HttpClient) {}
 

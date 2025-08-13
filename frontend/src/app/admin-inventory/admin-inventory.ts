@@ -5,6 +5,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { ModalService } from '../shared/modal.service';
+import { environment } from '../../environments/environment';
 
 interface Ingredient {
   id: number;
@@ -93,7 +94,7 @@ export class AdminInventoryComponent implements OnInit {
 
   loadInventory() {
     this.isLoading = true;
-    this.http.get<Ingredient[]>('http://localhost:4000/api/admin/inventory', { withCredentials: true }).subscribe({
+    this.http.get<Ingredient[]>(`${environment.apiUrl}/admin/inventory`, { withCredentials: true }).subscribe({
       next: (data) => {
         this.ingredients = data;
         this.isLoading = false;
@@ -107,7 +108,7 @@ export class AdminInventoryComponent implements OnInit {
   }
 
   loadMovements() {
-    this.http.get<StockMovement[]>('http://localhost:4000/api/admin/inventory/movements?limit=20', { withCredentials: true }).subscribe({
+    this.http.get<StockMovement[]>(`${environment.apiUrl}/admin/inventory/movements?limit=20`, { withCredentials: true }).subscribe({
       next: (data) => {
         this.movements = data;
       },
@@ -178,8 +179,8 @@ export class AdminInventoryComponent implements OnInit {
     }
 
     const url = this.editingIngredientId ? 
-      `http://localhost:4000/api/admin/inventory/${this.editingIngredientId}` : 
-      'http://localhost:4000/api/admin/inventory';
+      `${environment.apiUrl}/admin/inventory/${this.editingIngredientId}` : 
+      `${environment.apiUrl}/admin/inventory`;
     
     const method = this.editingIngredientId ? 'PUT' : 'POST';
 
@@ -214,7 +215,7 @@ export class AdminInventoryComponent implements OnInit {
       return;
     }
 
-    this.http.delete(`http://localhost:4000/api/admin/inventory/${ingredient.id}`, { withCredentials: true }).subscribe({
+    this.http.delete(`${environment.apiUrl}/admin/inventory/${ingredient.id}`, { withCredentials: true }).subscribe({
       next: () => {
         this.successMessage = 'Ingredient deleted successfully';
         this.loadInventory();
@@ -243,7 +244,7 @@ export class AdminInventoryComponent implements OnInit {
       return;
     }
 
-    this.http.put(`http://localhost:4000/api/admin/inventory/${this.stockUpdateIngredientId}/stock`, this.stockForm, { withCredentials: true }).subscribe({
+    this.http.put(`${environment.apiUrl}/admin/inventory/${this.stockUpdateIngredientId}/stock`, this.stockForm, { withCredentials: true }).subscribe({
       next: (response: any) => {
         this.successMessage = `Stock updated successfully. New stock: ${response.new_stock}`;
         this.showStockForm = false;

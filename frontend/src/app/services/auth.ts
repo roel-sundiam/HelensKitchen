@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { Router } from '@angular/router';
+import { environment } from '../../environments/environment';
 
 interface AdminUser {
   id: number;
@@ -18,7 +19,7 @@ interface AdminUser {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:4000/api/admin';
+  private readonly apiUrl = `${environment.apiUrl}/admin`;
   private isAuthenticatedSubject = new BehaviorSubject<boolean>(false);
   private currentAdminSubject = new BehaviorSubject<AdminUser | null>(null);
 

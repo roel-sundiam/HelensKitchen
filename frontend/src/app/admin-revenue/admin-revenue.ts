@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { Chart, registerables } from 'chart.js';
 import { AuthService } from '../services/auth';
+import { environment } from '../../environments/environment';
 
 Chart.register(...registerables);
 
@@ -57,7 +58,7 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   }
 
   loadRevenueData() {
-    this.http.get<RevenueData[]>('http://localhost:4000/api/admin/revenue', { withCredentials: true }).subscribe({
+    this.http.get<RevenueData[]>(`${environment.apiUrl}/admin/revenue`, { withCredentials: true }).subscribe({
       next: (data) => {
         this.revenueData = data;
         this.totalRevenue = data.reduce((sum, item) => sum + item.total_revenue, 0);
@@ -71,7 +72,7 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   }
 
   loadExpenseData() {
-    this.http.get<ExpenseData[]>('http://localhost:4000/api/admin/expenses', { withCredentials: true }).subscribe({
+    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { withCredentials: true }).subscribe({
       next: (data) => {
         this.expenseData = data;
         this.totalExpenses = data.reduce((sum, item) => sum + item.amount, 0);

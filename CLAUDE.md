@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Helen's Kitchen is a food ordering web application built with Angular frontend and Node.js/Express backend. It's designed for a local food business selling burgers and Charlie Chan pasta with features for customer ordering and admin management.
 
+## Git Workflow
+
+**Note**: Claude will handle `git add` and `git commit` operations. User will handle `git push` to remote repository.
+
 ## Development Commands
 
 ### Frontend (Angular)

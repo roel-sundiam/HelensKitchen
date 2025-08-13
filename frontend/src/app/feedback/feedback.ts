@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-feedback',
@@ -48,7 +49,7 @@ export class FeedbackComponent implements OnInit {
   }
 
   loadOrderData(orderId: string, phone: string) {
-    this.http.get(`http://localhost:4000/api/track-order/${orderId}/${phone}`).subscribe({
+    this.http.get(`${environment.apiUrl}/track-order/${orderId}/${phone}`).subscribe({
       next: (data: any) => {
         this.orderData = data;
       },
@@ -60,7 +61,7 @@ export class FeedbackComponent implements OnInit {
   }
 
   checkExistingFeedback(orderId: string, phone: string) {
-    this.http.get(`http://localhost:4000/api/feedback/check/${orderId}/${phone}`).subscribe({
+    this.http.get(`${environment.apiUrl}/feedback/check/${orderId}/${phone}`).subscribe({
       next: (response: any) => {
         if (response.hasFeedback) {
           this.existingFeedback = response.feedback;
@@ -89,7 +90,7 @@ export class FeedbackComponent implements OnInit {
       comment: this.feedbackForm.value.comment
     };
 
-    this.http.post('http://localhost:4000/api/feedback', feedbackData).subscribe({
+    this.http.post(`${environment.apiUrl}/feedback`, feedbackData).subscribe({
       next: (response: any) => {
         this.isSubmitted = true;
         this.isLoading = false;

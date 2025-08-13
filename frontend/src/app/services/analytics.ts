@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface AnalyticsOverview {
   total_sessions: number;
@@ -41,7 +42,7 @@ export interface SessionData {
   providedIn: 'root'
 })
 export class AnalyticsService {
-  private apiUrl = 'http://localhost:4000/api';
+  private apiUrl = environment.apiUrl;
   private sessionId: string;
 
   constructor(private http: HttpClient) {
