@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthService } from '../services/auth';
 import { ModalService } from '../shared/modal.service';
+import { environment } from '../../environments/environment';
 
 interface FeedbackData {
   id: number;
@@ -68,7 +69,7 @@ export class AdminFeedback implements OnInit {
     if (this.filterStatus) params.status = this.filterStatus;
     if (this.filterRating) params.rating = this.filterRating;
 
-    this.http.get<FeedbackData[]>('http://localhost:4000/api/admin/feedback', { 
+    this.http.get<FeedbackData[]>(`${environment.apiUrl}/admin/feedback`, { 
       params, 
       withCredentials: true 
     }).subscribe({
@@ -85,7 +86,7 @@ export class AdminFeedback implements OnInit {
   }
 
   loadStats() {
-    this.http.get<FeedbackStats>('http://localhost:4000/api/admin/feedback/stats', { 
+    this.http.get<FeedbackStats>(`${environment.apiUrl}/admin/feedback/stats`, { 
       withCredentials: true 
     }).subscribe({
       next: (data) => {
@@ -111,7 +112,7 @@ export class AdminFeedback implements OnInit {
       return;
     }
 
-    this.http.put(`http://localhost:4000/api/admin/feedback/${feedback.id}/status`, 
+    this.http.put(`${environment.apiUrl}/admin/feedback/${feedback.id}/status`, 
       { status: newStatus }, 
       { withCredentials: true }
     ).subscribe({
@@ -142,7 +143,7 @@ export class AdminFeedback implements OnInit {
       return;
     }
 
-    this.http.delete(`http://localhost:4000/api/admin/feedback/${feedback.id}`, { 
+    this.http.delete(`${environment.apiUrl}/admin/feedback/${feedback.id}`, { 
       withCredentials: true 
     }).subscribe({
       next: () => {

@@ -4,6 +4,7 @@ import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angula
 import { HttpClient, HttpClientModule } from '@angular/common/http';
 import { AuthService } from '../services/auth';
 import { ModalService } from '../shared/modal.service';
+import { environment } from '../../environments/environment';
 
 interface ExpenseData {
   id: number;
@@ -60,7 +61,7 @@ export class AdminExpenses implements OnInit {
 
   loadExpenses() {
     this.isLoading = true;
-    this.http.get<ExpenseData[]>('http://localhost:4000/api/admin/expenses', { withCredentials: true }).subscribe({
+    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { withCredentials: true }).subscribe({
       next: (data) => {
         this.expenses = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         this.isLoading = false;
@@ -84,7 +85,7 @@ export class AdminExpenses implements OnInit {
 
     if (this.editingExpense) {
       // Update existing expense
-      this.http.put(`http://localhost:4000/api/admin/expenses/${this.editingExpense.id}`, expenseData, { withCredentials: true }).subscribe({
+      this.http.put(`${environment.apiUrl}/admin/expenses/${this.editingExpense.id}`, expenseData, { withCredentials: true }).subscribe({
         next: () => {
           this.modalService.showAlert('Success', 'Expense updated successfully', '✅');
           this.loadExpenses();
@@ -98,7 +99,7 @@ export class AdminExpenses implements OnInit {
       });
     } else {
       // Create new expense
-      this.http.post('http://localhost:4000/api/admin/expenses', expenseData, { withCredentials: true }).subscribe({
+      this.http.post(`${environment.apiUrl}/admin/expenses`, expenseData, { withCredentials: true }).subscribe({
         next: () => {
           this.modalService.showAlert('Success', 'Expense added successfully', '✅');
           this.loadExpenses();
@@ -137,7 +138,7 @@ export class AdminExpenses implements OnInit {
     }
 
     this.isLoading = true;
-    this.http.delete(`http://localhost:4000/api/admin/expenses/${expense.id}`, { withCredentials: true }).subscribe({
+    this.http.delete(`${environment.apiUrl}/admin/expenses/${expense.id}`, { withCredentials: true }).subscribe({
       next: () => {
         this.modalService.showAlert('Success', 'Expense deleted successfully', '✅');
         this.loadExpenses();

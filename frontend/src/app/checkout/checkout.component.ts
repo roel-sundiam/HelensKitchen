@@ -13,6 +13,7 @@ import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { CartItem, CartService } from '../cart/cart.service';
 import { AnalyticsService } from '../services/analytics';
 import { ErrorModalComponent } from '../shared/error-modal.component';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-checkout',
@@ -106,7 +107,7 @@ export class CheckoutComponent {
       status: 'New',
     };
 
-    this.http.post<{orderId: number}>('http://localhost:4000/api/orders', orderData).subscribe({
+    this.http.post<{orderId: number}>(`${environment.apiUrl}/orders`, orderData).subscribe({
       next: (response) => {
         this.orderId = response.orderId;
         this.orderSubmitted = true;

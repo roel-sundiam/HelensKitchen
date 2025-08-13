@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { ConfirmationModalComponent } from '../shared/confirmation-modal.component';
 import { NotificationModalComponent, NotificationType } from '../shared/notification-modal.component';
+import { environment } from '../../environments/environment';
 
 interface Order {
   id: number;
@@ -70,7 +71,7 @@ export class AdminOrdersComponent implements OnInit {
 
     console.log('Loading orders with params:', params);
 
-    this.http.get<Order[]>('http://localhost:4000/api/admin/orders', { params, withCredentials: true }).subscribe({
+    this.http.get<Order[]>('${environment.apiUrl}/admin/orders', { params, withCredentials: true }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
         this.orders = data;
@@ -119,7 +120,7 @@ export class AdminOrdersComponent implements OnInit {
         });
         
         this.http
-          .put(`http://localhost:4000/api/admin/orders/${order.id}/status`, { status: newStatus }, { withCredentials: true })
+          .put(`${environment.apiUrl}/admin/orders/${order.id}/status`, { status: newStatus }, { withCredentials: true })
           .subscribe({
             next: (response) => {
               console.log('Order status update response:', response);
@@ -173,7 +174,7 @@ export class AdminOrdersComponent implements OnInit {
         });
         
         this.http
-          .put(`http://localhost:4000/api/admin/orders/${order.id}/payment-status`, {
+          .put(`${environment.apiUrl}/admin/orders/${order.id}/payment-status`, {
             payment_status: newPaymentStatus,
           }, { withCredentials: true })
           .subscribe({

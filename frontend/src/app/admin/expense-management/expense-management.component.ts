@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { environment } from '../../../environments/environment';
 
 interface Expense {
   id?: number;
@@ -29,7 +30,7 @@ export class ExpenseManagementComponent implements OnInit {
   }
 
   loadExpenses() {
-    this.http.get<Expense[]>('http://localhost:4000/api/admin/expenses').subscribe((data) => {
+    this.http.get<Expense[]>(`${environment.apiUrl}/admin/expenses`).subscribe((data) => {
       this.expenses = data;
     });
   }
@@ -43,7 +44,7 @@ export class ExpenseManagementComponent implements OnInit {
       alert('Please fill out all required fields.');
       return;
     }
-    this.http.post('http://localhost:4000/api/admin/expenses', this.newExpense).subscribe(() => {
+    this.http.post(`${environment.apiUrl}/admin/expenses`, this.newExpense).subscribe(() => {
       this.loadExpenses();
       this.newExpense = { date: '', category: '', amount: 0, notes: '' };
     });
@@ -51,7 +52,7 @@ export class ExpenseManagementComponent implements OnInit {
 
   deleteExpense(id: number) {
     if (confirm('Are you sure you want to delete this expense?')) {
-      this.http.delete(`http://localhost:4000/api/admin/expenses/${id}`).subscribe(() => {
+      this.http.delete(`${environment.apiUrl}/admin/expenses/${id}`).subscribe(() => {
         this.loadExpenses();
       });
     }

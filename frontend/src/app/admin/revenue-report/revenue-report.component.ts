@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartOptions, ChartType, registerables } from 'chart.js';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-revenue-report',
@@ -37,7 +38,7 @@ export class RevenueReportComponent implements OnInit {
   }
 
   loadRevenue() {
-    this.http.get<any[]>('http://localhost:4000/api/admin/revenue').subscribe((data) => {
+    this.http.get<any[]>(`${environment.apiUrl}/admin/revenue`).subscribe((data) => {
       this.revenueData = data;
 
       // Extract unique dates as labels
