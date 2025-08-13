@@ -307,4 +307,25 @@ export class AdminInventoryComponent implements OnInit {
   getStockCount(status: 'ok' | 'low' | 'out'): number {
     return this.ingredients.filter(ingredient => ingredient.stock_status === status).length;
   }
+
+  clearAllInventory(): void {
+    const confirmed = confirm('⚠️ Are you sure you want to clear ALL inventory data?\n\nThis will permanently delete:\n• All ingredients\n• All stock movements\n• All ingredient-menu relationships\n\nThis action cannot be undone!');
+    
+    if (!confirmed) return;
+
+    const headers = this.authService.getAuthHeaders();
+    
+    this.http.delete(`${environment.apiUrl}/admin/inventory/all`, { headers }).subscribe({
+      next: (response: any) => {
+        console.log('✅ All inventory cleared:', response);
+        this.ingredients = [];
+        this.movements = [];
+        alert('✅ All inventory data has been cleared successfully!');
+      },
+      error: (err) => {
+        console.error('❌ Error clearing inventory:', err);
+        alert('❌ Failed to clear inventory. Please try again.');
+      }
+    });
+  }
 }

@@ -6,6 +6,13 @@
         <h2>📦 Inventory Management</h2>
         <p class="header-subtitle">Track and manage your ingredient inventory</p>
       </div>
+      <div class="header-actions">
+        <button class="btn btn-danger" (click)="clearAllInventory()" 
+                [disabled]="ingredients.length === 0"
+                title="Clear all inventory data">
+          🗑️ Clear All
+        </button>
+      </div>
       <div class="inventory-stats" *ngIf="ingredients.length > 0">
         <div class="stat-card ok">
           <div class="stat-icon">✅</div>
