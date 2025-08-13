@@ -191,8 +191,18 @@ app.post("/api/admin/login", (req, res) => {
             console.log('Response headers before send:', res.getHeaders());
             
             // Manual cookie setting as backup
-            const cookieOptions = `helens_session=${req.sessionID}; Path=/; HttpOnly; ${process.env.NODE_ENV === 'production' ? 'Secure; SameSite=None' : 'SameSite=Lax'}; Max-Age=86400`;
-            res.setHeader('Set-Cookie', cookieOptions);
+            const isProduction = process.env.NODE_ENV === 'production';
+            const cookieOptions = `helens_session=${req.sessionID}; Path=/; HttpOnly; ${isProduction ? 'Secure; SameSite=None' : 'SameSite=Lax'}; Max-Age=86400`;
+            
+            // For cross-origin, try setting cookie with specific domain
+            if (isProduction) {
+              res.setHeader('Set-Cookie', [
+                cookieOptions,
+                `helens_session_backup=${req.sessionID}; Path=/; Max-Age=86400; SameSite=Lax`
+              ]);
+            } else {
+              res.setHeader('Set-Cookie', cookieOptions);
+            }
             
             console.log('Manual cookie set:', cookieOptions);
             
