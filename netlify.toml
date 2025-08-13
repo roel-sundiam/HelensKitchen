@@ -1,0 +1,9 @@
+[build]
+  base = "frontend"
+  command = "ng build --configuration=netlify"
+  publish = "frontend/dist/frontend"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
