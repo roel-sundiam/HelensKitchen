@@ -100,18 +100,8 @@ export class AuthService {
   }
 
   logoutAndRedirect(): void {
-    this.logout().subscribe({
-      next: () => {
-        this.clearAuthentication();
-        this.router.navigate(['/']);
-      },
-      error: (err) => {
-        console.error('Logout error:', err);
-        // Clear local state even if server request fails
-        this.clearAuthentication();
-        this.router.navigate(['/']);
-      }
-    });
+    this.logout();
+    this.router.navigate(['/']);
   }
 
   hasPermission(permission: string): boolean {
