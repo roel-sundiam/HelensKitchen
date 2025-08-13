@@ -71,7 +71,7 @@ export class AdminOrdersComponent implements OnInit {
 
     console.log('Loading orders with params:', params);
 
-    this.http.get<Order[]>('${environment.apiUrl}/admin/orders', { params, withCredentials: true }).subscribe({
+    this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, withCredentials: true }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
         this.orders = data;
