@@ -1800,6 +1800,43 @@ app.put("/api/admin/inventory/:id/stock", requirePermission('inventory.update'),
   });
 });
 
+// DELETE /api/admin/inventory/all - Delete all inventory data
+app.delete("/api/admin/inventory/all", requirePermission('inventory.manage'), (req, res) => {
+  console.log('🗑️ Clearing all inventory data via API...');
+  
+  // Clear in order: stock_movements -> menu_item_ingredients -> ingredients
+  db.run("DELETE FROM stock_movements", [], (err) => {
+    if (err) {
+      console.error('Error clearing stock movements:', err);
+      return res.status(500).json({ error: "Failed to clear stock movements" });
+    }
+    
+    db.run("DELETE FROM menu_item_ingredients", [], (err) => {
+      if (err) {
+        console.error('Error clearing menu item ingredients:', err);
+        return res.status(500).json({ error: "Failed to clear menu item ingredients" });
+      }
+      
+      db.run("DELETE FROM ingredients", [], (err) => {
+        if (err) {
+          console.error('Error clearing ingredients:', err);
+          return res.status(500).json({ error: "Failed to clear ingredients" });
+        }
+        
+        console.log('✅ All inventory data cleared successfully');
+        res.json({ 
+          message: "All inventory data cleared successfully",
+          cleared: {
+            ingredients: true,
+            stock_movements: true,
+            menu_item_ingredients: true
+          }
+        });
+      });
+    });
+  });
+});
+
 // DELETE /api/admin/inventory/:id - Delete ingredient
 app.delete("/api/admin/inventory/:id", requirePermission('inventory.manage'), (req, res) => {
   const ingredientId = req.params.id;
