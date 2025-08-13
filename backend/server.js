@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const session = require("express-session");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 const fs = require("fs");
 const path = require("path");
 
@@ -44,65 +45,53 @@ app.get("/api/health", (req, res) => {
 });
 
 
-// Authentication middleware
+// JWT Secret
+const JWT_SECRET = process.env.JWT_SECRET || 'helens-kitchen-jwt-secret-key';
+
+// JWT Authentication middleware
 function requireAuth(req, res, next) {
-  if (req.session && req.session.adminId) {
-    return next();
-  } else {
+  const token = req.headers.authorization?.split(' ')[1]; // Bearer TOKEN
+  
+  if (!token) {
     return res.status(401).json({ error: "Authentication required" });
+  }
+  
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.adminUser = decoded;
+    return next();
+  } catch (error) {
+    return res.status(401).json({ error: "Invalid token" });
   }
 }
 
 // Permission-based authorization middleware
 function requirePermission(permission) {
   return (req, res, next) => {
-    if (!req.session || !req.session.adminId) {
+    // First check if user is authenticated (JWT token)
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
       return res.status(401).json({ error: "Authentication required" });
     }
-
-    // Get user with role and permissions
-    const sql = `
-      SELECT u.*, r.name as role_name, p.name as permission_name
-      FROM admin_users u
-      LEFT JOIN admin_roles r ON u.role_id = r.id
-      LEFT JOIN admin_role_permissions rp ON r.id = rp.role_id
-      LEFT JOIN admin_permissions p ON rp.permission_id = p.id
-      WHERE u.id = ? AND u.is_active = 1
-    `;
     
-    db.all(sql, [req.session.adminId], (err, rows) => {
-      if (err) {
-        console.error('Permission check error:', err);
-        return res.status(500).json({ error: "Server error" });
-      }
-      
-      if (rows.length === 0) {
-        return res.status(403).json({ error: "User not found or inactive" });
-      }
-      
-      // Extract permissions from rows
-      const userPermissions = rows
-        .map(row => row.permission_name)
-        .filter(perm => perm !== null);
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
       
       // Check if user has required permission
-      if (userPermissions.includes(permission)) {
-        // Add user info to request for later use
-        req.adminUser = {
-          id: rows[0].id,
-          username: rows[0].username,
-          role_name: rows[0].role_name,
-          permissions: userPermissions
-        };
+      if (decoded.permissions && decoded.permissions.includes(permission)) {
+        req.adminUser = decoded;
         next();
       } else {
         return res.status(403).json({ 
           error: "Insufficient permissions", 
           required: permission,
-          userPermissions: userPermissions 
+          userPermissions: decoded.permissions || []
         });
       }
-    });
+    } catch (error) {
+      return res.status(401).json({ error: "Invalid token" });
+    }
   };
 }
 
@@ -175,52 +164,36 @@ app.post("/api/admin/login", (req, res) => {
             return res.status(500).json({ error: "Error loading permissions" });
           }
           
-          req.session.adminId = user.id;
-          req.session.adminUsername = user.username;
-          req.session.adminRole = user.role_name;
+          // Update last login
+          db.run("UPDATE admin_users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [user.id]);
           
-          console.log('Session set:', req.session);
-          console.log('Session ID:', req.sessionID);
+          // Create JWT token
+          const tokenPayload = {
+            id: user.id,
+            username: user.username,
+            role: user.role_name,
+            permissions: permissions.map(p => p.permission_name)
+          };
           
-          // Explicitly save session
-          req.session.save((err) => {
-            if (err) {
-              console.error('Session save error:', err);
-            }
-            
-            console.log('Response headers before send:', res.getHeaders());
-            
-            // Manual cookie setting as backup
-            const isProduction = process.env.NODE_ENV === 'production';
-            const cookieOptions = `helens_session=${req.sessionID}; Path=/; HttpOnly; ${isProduction ? 'Secure; SameSite=None' : 'SameSite=Lax'}; Max-Age=86400`;
-            
-            // For cross-origin, try setting cookie with specific domain
-            if (isProduction) {
-              res.setHeader('Set-Cookie', [
-                cookieOptions,
-                `helens_session_backup=${req.sessionID}; Path=/; Max-Age=86400; SameSite=Lax`
-              ]);
-            } else {
-              res.setHeader('Set-Cookie', cookieOptions);
-            }
-            
-            console.log('Manual cookie set:', cookieOptions);
-            
-            res.json({ 
-              message: "Login successful", 
-              admin: { 
-                id: user.id, 
-                username: user.username,
-                full_name: user.full_name,
-                email: user.email,
-                role: user.role_name,
-                role_description: user.role_description,
-                permissions: permissions.map(p => p.permission_name),
-                last_login: user.last_login
-              } 
-            });
-            
-            console.log('Response headers after send:', res.getHeaders());
+          const token = jwt.sign(tokenPayload, JWT_SECRET, { 
+            expiresIn: '24h' 
+          });
+          
+          console.log('JWT token created for user:', user.username);
+          
+          res.json({ 
+            message: "Login successful",
+            token: token,
+            admin: { 
+              id: user.id, 
+              username: user.username,
+              full_name: user.full_name,
+              email: user.email,
+              role: user.role_name,
+              role_description: user.role_description,
+              permissions: permissions.map(p => p.permission_name),
+              last_login: user.last_login
+            } 
           });
         });
       } else {
