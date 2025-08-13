@@ -178,18 +178,27 @@ app.post("/api/admin/login", (req, res) => {
           req.session.adminUsername = user.username;
           req.session.adminRole = user.role_name;
           
-          res.json({ 
-            message: "Login successful", 
-            admin: { 
-              id: user.id, 
-              username: user.username,
-              full_name: user.full_name,
-              email: user.email,
-              role: user.role_name,
-              role_description: user.role_description,
-              permissions: permissions.map(p => p.permission_name),
-              last_login: user.last_login
-            } 
+          console.log('Session set:', req.session);
+          console.log('Session ID:', req.sessionID);
+          
+          // Explicitly save session
+          req.session.save((err) => {
+            if (err) {
+              console.error('Session save error:', err);
+            }
+            res.json({ 
+              message: "Login successful", 
+              admin: { 
+                id: user.id, 
+                username: user.username,
+                full_name: user.full_name,
+                email: user.email,
+                role: user.role_name,
+                role_description: user.role_description,
+                permissions: permissions.map(p => p.permission_name),
+                last_login: user.last_login
+              } 
+            });
           });
         });
       } else {
