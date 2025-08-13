@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://your-backend-api-url.herokuapp.com/api' // Replace with your actual backend URL
+  apiUrl: 'https://helenskitchen.onrender.com/api'
 };
