@@ -1,0 +1,105 @@
+<div class="cart-container">
+  <div class="cart-header">
+    <h1 class="cart-title">Your Cart</h1>
+    <p class="cart-subtitle" *ngIf="cartItems.length > 0">
+      {{ cartItems.length }} item{{ cartItems.length === 1 ? '' : 's' }} in your cart
+    </p>
+  </div>
+
+  <div *ngIf="cartItems.length; else emptyCart" class="cart-content">
+    <div class="cart-items">
+      <div class="cart-item" *ngFor="let item of cartItems; trackBy: trackByItem">
+        <div class="item-image">
+          <img
+            [src]="item.menuItem.image_url || item.menuItem.images?.[0]"
+            [alt]="item.menuItem.name"
+            class="item-img"
+          />
+        </div>
+        
+        <div class="item-details">
+          <h3 class="item-name">{{ item.menuItem.name }}</h3>
+          <p class="item-variant">{{ item.variant }}</p>
+          <p class="item-description">{{ item.menuItem.description }}</p>
+        </div>
+        
+        <div class="item-controls">
+          <div class="price-section">
+            <span class="unit-price">₱{{ item.price.toFixed(2) }}</span>
+            <span class="price-label">each</span>
+          </div>
+          
+          <div class="quantity-controls">
+            <label class="quantity-label">Quantity:</label>
+            <div class="quantity-input-group">
+              <button 
+                class="quantity-btn decrease" 
+                (click)="decreaseQuantity(item)"
+                [disabled]="item.quantity <= 1"
+              >
+                −
+              </button>
+              <input
+                type="number"
+                class="quantity-input"
+                [value]="item.quantity"
+                min="1"
+                max="99"
+                (change)="updateQuantity(item, +$any($event).target.value)"
+              />
+              <button 
+                class="quantity-btn increase" 
+                (click)="increaseQuantity(item)"
+              >
+                +
+              </button>
+            </div>
+          </div>
+          
+          <div class="item-total">
+            <span class="total-label">Total:</span>
+            <span class="total-price">₱{{ (item.price * item.quantity).toFixed(2) }}</span>
+          </div>
+          
+          <button class="remove-btn" (click)="removeItem(item)">
+            🗑️ Remove
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="cart-summary">
+      <div class="summary-content">
+        <div class="summary-row subtotal">
+          <span>Subtotal ({{ getTotalItems() }} items):</span>
+          <span>₱{{ getTotal().toFixed(2) }}</span>
+        </div>
+        
+        <div class="summary-row total">
+          <span>Total:</span>
+          <span>₱{{ getTotal().toFixed(2) }}</span>
+        </div>
+        
+        <div class="cart-actions">
+          <button class="btn-secondary" routerLink="/">
+            Continue Shopping
+          </button>
+          <button class="btn-primary" routerLink="/checkout">
+            Proceed to Checkout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #emptyCart>
+    <div class="empty-cart">
+      <div class="empty-cart-icon">🛒</div>
+      <h2>Your cart is empty</h2>
+      <p>Looks like you haven't added any delicious items to your cart yet.</p>
+      <button class="btn-primary" routerLink="/">
+        Browse Menu
+      </button>
+    </div>
+  </ng-template>
+</div>

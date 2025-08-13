@@ -1,0 +1,133 @@
+<div class="expenses-dashboard">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>💸 Expense Management</h1>
+      <p class="header-subtitle">Track and manage your business expenses</p>
+    </div>
+  </div>
+
+  <!-- Summary Card -->
+  <div class="summary-section">
+    <div class="summary-card">
+      <div class="card-icon">💰</div>
+      <div class="card-content">
+        <h3>Total Expenses</h3>
+        <p class="amount">₱{{ getTotalExpenses().toLocaleString() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expense Form -->
+  <div class="expense-form-section">
+    <div class="form-header">
+      <h2>{{ editingExpense ? '✏️ Edit Expense' : '➕ Add New Expense' }}</h2>
+    </div>
+    <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>
+            📅 Date
+            <input type="date" formControlName="date" />
+            <div class="error-message" 
+                 *ngIf="expenseForm.get('date')?.invalid && expenseForm.get('date')?.touched">
+              Date is required.
+            </div>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>
+            🏷️ Category
+            <select formControlName="category">
+              <option value="" disabled>Select category</option>
+              <option *ngFor="let category of expenseCategories" [value]="category">
+                {{ category }}
+              </option>
+            </select>
+            <div class="error-message" 
+                 *ngIf="expenseForm.get('category')?.invalid && expenseForm.get('category')?.touched">
+              Category is required.
+            </div>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>
+            💱 Amount (₱)
+            <input type="number" formControlName="amount" min="0" step="0.01" placeholder="0.00" />
+            <div class="error-message" 
+                 *ngIf="expenseForm.get('amount')?.invalid && expenseForm.get('amount')?.touched">
+              Valid amount is required.
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group full-width">
+        <label>
+          📝 Notes (Optional)
+          <textarea formControlName="notes" rows="3" placeholder="Additional notes about this expense..."></textarea>
+        </label>
+      </div>
+
+      <div class="form-buttons">
+        <button type="submit" class="primary-btn" [disabled]="expenseForm.invalid || isLoading">
+          {{ isLoading ? '⏳ Saving...' : (editingExpense ? '💾 Update Expense' : '➕ Add Expense') }}
+        </button>
+        <button type="button" class="secondary-btn" *ngIf="editingExpense" (click)="cancelEdit()" [disabled]="isLoading">
+          ❌ Cancel Edit
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Expenses List -->
+  <div class="expenses-list">
+    <div class="list-header">
+      <h2>📊 Expense History</h2>
+    </div>
+    
+    <div class="table-wrapper">
+      <div *ngIf="isLoading && expenses.length === 0" class="loading">
+        <div class="loading-icon">⏳</div>
+        <p>Loading expenses...</p>
+      </div>
+
+      <div *ngIf="!isLoading && expenses.length === 0" class="no-data">
+        <div class="no-data-icon">📝</div>
+        <p>No expenses recorded yet</p>
+        <span class="no-data-subtitle">Start tracking your business expenses by adding your first expense above</span>
+      </div>
+
+      <table *ngIf="expenses.length > 0">
+        <thead>
+          <tr>
+            <th>📅 Date</th>
+            <th>🏷️ Category</th>
+            <th>💰 Amount</th>
+            <th>📝 Notes</th>
+            <th>⚙️ Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let expense of expenses" [class.editing]="editingExpense?.id === expense.id">
+            <td>{{ expense.date }}</td>
+            <td>
+              <span class="expense-category">{{ expense.category }}</span>
+            </td>
+            <td class="amount-cell">₱{{ expense.amount.toLocaleString() }}</td>
+            <td class="notes-cell">{{ expense.notes || '-' }}</td>
+            <td class="actions">
+              <button class="edit-btn" (click)="editExpense(expense)" [disabled]="isLoading">
+                ✏️ Edit
+              </button>
+              <button class="delete-btn" (click)="deleteExpense(expense)" [disabled]="isLoading">
+                🗑️ Delete
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

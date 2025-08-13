@@ -1,0 +1,104 @@
+<div class="feedback-container">
+  <div class="feedback-card">
+    <h1>Share Your Feedback</h1>
+    
+    <!-- Error State -->
+    <div *ngIf="errorMessage && !orderData" class="error-state">
+      <h2>⚠️ Unable to Load Order</h2>
+      <p>{{ errorMessage }}</p>
+      <button (click)="router.navigate(['/track-order'])" class="secondary-btn">Go to Order Tracking</button>
+    </div>
+
+    <!-- Order Information -->
+    <div *ngIf="orderData" class="order-info">
+      <h2>Order #{{ orderData.id }}</h2>
+      <p><strong>Customer:</strong> {{ orderData.customer_name }}</p>
+      <p><strong>Total:</strong> ₱{{ orderData.total_price?.toLocaleString() }}</p>
+      <p><strong>Status:</strong> <span class="status-badge">{{ orderData.status }}</span></p>
+    </div>
+
+    <!-- Existing Feedback Display -->
+    <div *ngIf="existingFeedback" class="existing-feedback">
+      <h3>✅ Feedback Already Submitted</h3>
+      <div class="feedback-display">
+        <div class="rating-display">
+          <span class="stars">{{ getStars(existingFeedback.rating).join('') }}</span>
+          <span class="rating-text">({{ existingFeedback.rating }}/5)</span>
+        </div>
+        <p class="comment" *ngIf="existingFeedback.comment">
+          "{{ existingFeedback.comment }}"
+        </p>
+        <p class="feedback-meta">
+          Submitted on {{ existingFeedback.created_at | date:'medium' }} • 
+          Status: <span class="status-{{ existingFeedback.status }}">{{ existingFeedback.status | titlecase }}</span>
+        </p>
+      </div>
+      <button (click)="goToTracking()" class="secondary-btn">Back to Order Tracking</button>
+    </div>
+
+    <!-- Feedback Form -->
+    <div *ngIf="orderData && !existingFeedback && !isSubmitted">
+      <form [formGroup]="feedbackForm" (ngSubmit)="onSubmit()">
+        <!-- Rating Selection -->
+        <div class="form-group">
+          <label>How would you rate your experience?</label>
+          <div class="rating-selector">
+            <input type="radio" id="rating-5" value="5" formControlName="rating">
+            <label for="rating-5">★★★★★ Excellent</label>
+            
+            <input type="radio" id="rating-4" value="4" formControlName="rating">
+            <label for="rating-4">★★★★☆ Good</label>
+            
+            <input type="radio" id="rating-3" value="3" formControlName="rating">
+            <label for="rating-3">★★★☆☆ Average</label>
+            
+            <input type="radio" id="rating-2" value="2" formControlName="rating">
+            <label for="rating-2">★★☆☆☆ Poor</label>
+            
+            <input type="radio" id="rating-1" value="1" formControlName="rating">
+            <label for="rating-1">★☆☆☆☆ Terrible</label>
+          </div>
+          <div class="error-message" *ngIf="feedbackForm.get('rating')?.invalid && feedbackForm.get('rating')?.touched">
+            Please select a rating
+          </div>
+        </div>
+
+        <!-- Comment Section -->
+        <div class="form-group">
+          <label for="comment">Tell us more about your experience (optional):</label>
+          <textarea 
+            id="comment"
+            formControlName="comment" 
+            rows="4" 
+            placeholder="Share details about food quality, delivery, service, etc..."
+            maxlength="500">
+          </textarea>
+          <div class="char-count">
+            {{ feedbackForm.get('comment')?.value?.length || 0 }}/500 characters
+          </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-message" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Submit Button -->
+        <div class="form-actions">
+          <button type="submit" [disabled]="feedbackForm.invalid || isLoading" class="submit-btn">
+            {{ isLoading ? 'Submitting...' : 'Submit Feedback' }}
+          </button>
+          <button type="button" (click)="goToTracking()" class="secondary-btn">Cancel</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Success State -->
+    <div *ngIf="isSubmitted" class="success-state">
+      <h2>🎉 Thank You!</h2>
+      <p>Your feedback has been submitted successfully and is being reviewed by our team.</p>
+      <p>We appreciate you taking the time to share your experience with Helen's Kitchen!</p>
+      <button (click)="goToTracking()" class="secondary-btn">Back to Order Tracking</button>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,133 @@
+<div class="track-order-container">
+  <div class="track-order-card">
+    <h1>Track Your Order</h1>
+    <p>Enter your order details to check the status of your delivery.</p>
+    
+    <form [formGroup]="trackingForm" (ngSubmit)="onSubmit()" class="tracking-form">
+      <label>
+        Order ID:
+        <input 
+          type="text" 
+          formControlName="orderId" 
+          placeholder="Enter your order ID (numbers only)"
+        />
+        <div 
+          *ngIf="trackingForm.get('orderId')?.invalid && trackingForm.get('orderId')?.touched" 
+          class="error-message"
+        >
+          Order ID must be a valid number.
+        </div>
+      </label>
+
+      <label>
+        Phone Number:
+        <input 
+          type="tel" 
+          formControlName="phone" 
+          placeholder="Enter phone number used for order"
+        />
+        <div 
+          *ngIf="trackingForm.get('phone')?.invalid && trackingForm.get('phone')?.touched" 
+          class="error-message"
+        >
+          Enter a valid phone number (10-15 digits).
+        </div>
+      </label>
+
+      <div class="button-group">
+        <button 
+          type="submit" 
+          [disabled]="trackingForm.invalid || loading"
+          class="track-button"
+        >
+          <span *ngIf="!loading">🔍 Track Order</span>
+          <span *ngIf="loading">⏳ Searching...</span>
+        </button>
+        
+        <button 
+          type="button" 
+          (click)="reset()" 
+          *ngIf="searched"
+          class="reset-button"
+        >
+          🔄 New Search
+        </button>
+      </div>
+    </form>
+
+    <!-- Error Message -->
+    <div *ngIf="error" class="error-alert">
+      ⚠️ {{ error }}
+    </div>
+
+    <!-- Order Details -->
+    <div *ngIf="order && !loading" class="order-details">
+      <div class="order-header">
+        <h2>Order #{{ order.id }}</h2>
+        <div class="order-date">
+          Ordered on {{ order.created_at | date:'medium' }}
+        </div>
+      </div>
+
+      <div class="status-section">
+        <div class="status-card">
+          <div class="status-icon">{{ getStatusIcon(order.status) }}</div>
+          <div class="status-info">
+            <h3>{{ getCustomerStatus(order.status) }}</h3>
+            <p class="status-description">
+              <span *ngIf="order.status === 'New'">We've received your order and will start preparing it soon.</span>
+              <span *ngIf="order.status === 'Processing'">Our kitchen is busy preparing your delicious meal!</span>
+              <span *ngIf="order.status === 'Delivered'">Your order has been successfully delivered. Enjoy!</span>
+              <span *ngIf="order.status === 'Cancelled'">This order has been cancelled.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="payment-card">
+          <div class="payment-icon">{{ getPaymentIcon(order.payment_status) }}</div>
+          <div class="payment-info">
+            <h4>{{ getPaymentStatus(order.payment_status) }}</h4>
+            <p class="payment-method">via {{ order.payment_method }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="delivery-info">
+        <h3>📍 Delivery Details</h3>
+        <div class="delivery-details">
+          <div class="delivery-item">
+            <strong>Customer:</strong> {{ order.customer_name }}
+          </div>
+          <div class="delivery-item">
+            <strong>Phone:</strong> {{ order.phone }}
+          </div>
+          <div class="delivery-item">
+            <strong>Address:</strong> {{ order.address }}
+          </div>
+          <div class="delivery-item">
+            <strong>Requested Delivery:</strong> {{ order.requested_delivery | date:'medium' }}
+          </div>
+          <div class="delivery-item total">
+            <strong>Total Amount:</strong> ₱{{ order.total_price.toFixed(2) }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Section -->
+      <div class="feedback-section" *ngIf="order.status === 'Delivered'">
+        <h3>💬 Share Your Experience</h3>
+        <p>How was your order? We'd love to hear your feedback!</p>
+        <button class="feedback-button" (click)="goToFeedback()">
+          ⭐ Leave Feedback
+        </button>
+      </div>
+    </div>
+
+    <!-- No Results -->
+    <div *ngIf="searched && !order && !loading && !error" class="no-results">
+      <div class="no-results-icon">🔍</div>
+      <h3>Order Not Found</h3>
+      <p>We couldn't find an order with those details. Please check your Order ID and phone number, then try again.</p>
+    </div>
+  </div>
+</div>

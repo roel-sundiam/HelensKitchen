@@ -1,0 +1,292 @@
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1C1C1E;
+  padding: 2rem;
+}
+
+.login-card {
+  background: #2D2D2D;
+  padding: 3rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  width: 100%;
+  max-width: 450px;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #EF4444 0%, #DC2626 50%, #B91C1C 100%);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+
+  h1 {
+    font-family: "Bebas Neue", "Arial", sans-serif;
+    color: #FFFFFF;
+    font-size: 2.5rem;
+    margin: 0 0 0.5rem 0;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    color: #D1D5DB;
+    font-size: 1.2rem;
+    font-weight: 500;
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    position: relative;
+  }
+
+  h2::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 2px;
+    background: #EF4444;
+    border-radius: 1px;
+  }
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  label {
+    color: #FFFFFF;
+    font-weight: 600;
+    font-size: 0.95rem;
+    font-family: "Poppins", sans-serif;
+  }
+
+  input {
+    padding: 1.2rem;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.05);
+    color: #FFFFFF;
+    font-family: "Poppins", sans-serif;
+
+    &::placeholder {
+      color: #9CA3AF;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: #EF4444;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+
+    &.error {
+      border-color: #EF4444;
+      background: rgba(239, 68, 68, 0.1);
+    }
+  }
+}
+
+.login-button {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 1.2rem 2rem;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  margin-top: 1rem;
+  font-family: "Poppins", sans-serif;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+  position: relative;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+
+  &:hover:not(:disabled) {
+    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
+  }
+
+  &:hover:not(:disabled)::before {
+    left: 100%;
+  }
+
+  &:disabled {
+    background: #6B7280;
+    cursor: not-allowed;
+    opacity: 0.7;
+    transform: none;
+    box-shadow: none;
+  }
+
+  &:disabled::before {
+    display: none;
+  }
+}
+
+.error-message {
+  color: #EF4444;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-family: "Poppins", sans-serif;
+}
+
+.login-info {
+  margin-top: 2.5rem;
+  padding-top: 2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+
+  p {
+    margin: 0.75rem 0;
+    color: #D1D5DB;
+    font-size: 0.9rem;
+    font-family: "Poppins", sans-serif;
+
+    &:first-child {
+      font-weight: 600;
+      color: #FFFFFF;
+      margin-bottom: 1rem;
+    }
+
+    code {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #FCD34D;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+  }
+}
+
+// Admin badge decoration
+.login-header::before {
+  content: '🔐';
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  font-size: 2rem;
+  opacity: 0.1;
+  transform: rotate(15deg);
+}
+
+// Subtle animation for the card
+.login-card {
+  animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Focus ring for accessibility
+.login-button:focus-visible {
+  outline: 2px solid #EF4444;
+  outline-offset: 2px;
+}
+
+input:focus-visible {
+  outline: 2px solid #EF4444;
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .login-container {
+    padding: 1rem;
+  }
+
+  .login-card {
+    padding: 2rem;
+    max-width: 100%;
+  }
+
+  .login-header h1 {
+    font-size: 2rem;
+    letter-spacing: 2px;
+  }
+
+  .login-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .form-group input {
+    padding: 1rem;
+  }
+
+  .login-button {
+    padding: 1rem 1.5rem;
+    font-size: 1rem;
+  }
+
+  .login-info {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+  }
+}
+
+@media (max-width: 320px) {
+  .login-card {
+    padding: 1.5rem;
+  }
+
+  .login-header {
+    margin-bottom: 2rem;
+  }
+
+  .login-header h1 {
+    font-size: 1.8rem;
+  }
+}

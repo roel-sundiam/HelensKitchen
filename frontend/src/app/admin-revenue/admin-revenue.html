@@ -1,0 +1,115 @@
+<div class="revenue-dashboard">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <h1>💰 Revenue & Profit Dashboard</h1>
+      <p class="header-subtitle">Track your business performance and financial metrics</p>
+    </div>
+  </div>
+  
+  <!-- Summary Cards -->
+  <div class="summary-cards">
+    <div class="summary-card revenue">
+      <div class="card-icon">📈</div>
+      <div class="card-content">
+        <h3>Total Revenue</h3>
+        <p class="amount">₱{{ totalRevenue.toLocaleString() }}</p>
+      </div>
+    </div>
+    <div class="summary-card expenses">
+      <div class="card-icon">💸</div>
+      <div class="card-content">
+        <h3>Total Expenses</h3>
+        <p class="amount">₱{{ totalExpenses.toLocaleString() }}</p>
+      </div>
+    </div>
+    <div class="summary-card profit" [ngClass]="{'negative': profit < 0}">
+      <div class="card-icon">{{ profit >= 0 ? '💰' : '📉' }}</div>
+      <div class="card-content">
+        <h3>Net Profit</h3>
+        <p class="amount">₱{{ profit.toLocaleString() }}</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts Section -->
+  <div class="charts-section">
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3>📊 Revenue Trends</h3>
+      </div>
+      <canvas #revenueChart></canvas>
+    </div>
+    <div class="chart-container">
+      <div class="chart-header">
+        <h3>💹 Profit Analysis</h3>
+      </div>
+      <canvas #profitChart></canvas>
+    </div>
+  </div>
+
+  <!-- Revenue Details Table -->
+  <div class="data-section revenue-details">
+    <div class="section-header">
+      <h2>📋 Revenue Details</h2>
+    </div>
+    <div class="table-wrapper">
+      <div *ngIf="revenueData.length === 0" class="no-data">
+        <div class="no-data-icon">📊</div>
+        <p>No revenue data available</p>
+        <span class="no-data-subtitle">Revenue data will appear here once orders are confirmed</span>
+      </div>
+      <table *ngIf="revenueData.length > 0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Payment Method</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of revenueData">
+            <td>{{ item.date }}</td>
+            <td>
+              <span class="payment-method">{{ item.payment_method }}</span>
+            </td>
+            <td class="amount-cell">₱{{ item.total_revenue.toLocaleString() }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent Expenses -->
+  <div class="data-section recent-expenses">
+    <div class="section-header">
+      <h2>🧾 Recent Expenses</h2>
+    </div>
+    <div class="table-wrapper">
+      <div *ngIf="expenseData.length === 0" class="no-data">
+        <div class="no-data-icon">💸</div>
+        <p>No expense data available</p>
+        <span class="no-data-subtitle">Expense records will appear here once expenses are logged</span>
+      </div>
+      <table *ngIf="expenseData.length > 0">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Category</th>
+            <th>Amount</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let expense of expenseData | slice:0:10">
+            <td>{{ expense.date }}</td>
+            <td>
+              <span class="expense-category">{{ expense.category }}</span>
+            </td>
+            <td class="amount-cell">₱{{ expense.amount.toLocaleString() }}</td>
+            <td class="notes-cell">{{ expense.notes || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

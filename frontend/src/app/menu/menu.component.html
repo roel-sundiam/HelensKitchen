@@ -1,0 +1,121 @@
+<div class="menu-section">
+  <div class="menu-header">
+    <h1 class="menu-title">MENU</h1>
+    
+    <div class="welcome-section">
+      <p class="welcome-text">
+        Welcome to <span class="brand-name">Helen's Kitchen</span> – your local destination for fresh, delicious comfort food. 
+        We specialize in juicy burgers and our signature Charlie Chan pasta, made with love and quality ingredients.
+      </p>
+      <p class="order-notice">
+        All orders require 24-hour advance notice for delivery. Order today for tomorrow's feast!
+      </p>
+    </div>
+  </div>
+
+  <div *ngIf="loading" class="loading-message">Loading menu...</div>
+  <div *ngIf="error" class="error-message">{{ error }}</div>
+
+  <div class="menu-grid" *ngIf="!loading && !error">
+    <div class="menu-item-card" *ngFor="let item of menuItems; let i = index">
+      <div class="menu-item-image">
+        <!-- Image Carousel -->
+        <div class="image-carousel" *ngIf="item.images && item.images.length > 1; else singleImage">
+          <div class="carousel-container">
+            <div class="carousel-images" [style.transform]="'translateX(-' + (currentImageIndex[item.id] || 0) * 100 + '%)'">
+              <img 
+                *ngFor="let image of item.images" 
+                [src]="image" 
+                [alt]="item.name"
+                class="carousel-image"
+              />
+            </div>
+            
+            <!-- Navigation Dots -->
+            <div class="carousel-dots" *ngIf="item.images.length > 1">
+              <button 
+                *ngFor="let image of item.images; let idx = index"
+                class="carousel-dot"
+                [class.active]="idx === (currentImageIndex[item.id] || 0)"
+                (click)="setCurrentImage(item.id, idx)"
+              ></button>
+            </div>
+            
+            <!-- Navigation Arrows -->
+            <button 
+              class="carousel-arrow carousel-arrow-left"
+              (click)="previousImage(item.id, item.images.length)"
+              *ngIf="item.images.length > 1"
+            >
+              ‹
+            </button>
+            <button 
+              class="carousel-arrow carousel-arrow-right"
+              (click)="nextImage(item.id, item.images.length)"
+              *ngIf="item.images.length > 1"
+            >
+              ›
+            </button>
+          </div>
+        </div>
+        
+        <!-- Single Image Template -->
+        <ng-template #singleImage>
+          <img [src]="item.images?.[0] || item.image_url" [alt]="item.name" class="single-image" />
+        </ng-template>
+      </div>
+
+      <div class="menu-item-content">
+        <h2 class="item-name">{{ item.name }}</h2>
+        <p class="item-description">{{ item.description }}</p>
+
+        <div *ngIf="item.variants && item.variants.length > 0" class="variants">
+          <div *ngFor="let variant of item.variants" class="variant-option">
+            <label>
+              <input
+                type="radio"
+                [name]="'variant_' + item.id"
+                [value]="variant.id"
+                (change)="selectedVariants[item.id] = variant"
+              />
+              <span class="variant-text">{{ variant.name }}</span>
+              <span class="variant-price">₱{{ variant.price.toFixed(2) }}</span>
+            </label>
+          </div>
+        </div>
+
+        <div
+          *ngIf="!item.variants || item.variants.length === 0"
+          class="item-price"
+        >
+          ₱{{ item.base_price.toFixed(2) }}
+        </div>
+
+        <button
+          class="add-to-cart-btn"
+          (click)="addItemToCart(item)"
+          [disabled]="
+            item.variants &&
+            item.variants.length > 0 &&
+            !selectedVariants[item.id]
+          "
+        >
+          Add to Cart
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add to Cart Modal -->
+  <app-add-to-cart-modal
+    [isVisible]="showModal"
+    [itemName]="modalData.itemName"
+    [variant]="modalData.variant"
+    [price]="modalData.price"
+    [itemImage]="modalData.itemImage"
+    [cartCount]="cartItemCount"
+    (closeModal)="closeModal()"
+    (continueShopping)="onContinueShopping()"
+    (viewCart)="onViewCart()">
+  </app-add-to-cart-modal>
+</div>

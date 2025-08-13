@@ -1,0 +1,50 @@
+
+<header class="main-header" *ngIf="showNavigation">
+  <div class="header-content">
+    <div class="brand-section">
+      <img src="images/helens-kitchen-logo.jpg" alt="Helen's Kitchen Logo" class="logo">
+      <span class="brand-text">HELEN'S KITCHEN</span>
+    </div>
+    
+    <div class="header-actions" *ngIf="!(authService.isAuthenticated$ | async)">
+      <a routerLink="/cart" class="cart-icon">
+        🛒 <span class="cart-count" *ngIf="cartItemCount > 0">{{ cartItemCount }}</span>
+      </a>
+    </div>
+  </div>
+  
+  <!-- Navigation for customer and admin links -->
+  <nav class="secondary-nav">
+    <div class="nav-links">
+      <!-- Customer Links - Only visible when NOT admin authenticated -->
+      <ng-container *ngIf="!(authService.isAuthenticated$ | async)">
+        <a routerLink="/" class="customer-link">🍽️ Menu</a>
+        <a routerLink="/checkout" class="customer-link">🛒 Checkout</a>
+        <a routerLink="/track-order" class="customer-link">📋 Track Order</a>
+      </ng-container>
+      
+      <!-- Admin Links (shown only when authenticated) -->
+      <div class="admin-section" *ngIf="authService.isAuthenticated$ | async">
+        <a routerLink="/" class="back-to-customer">🏠 Back to Site</a>
+        <span class="admin-divider">|</span>
+        <a routerLink="/admin/orders" class="admin-link" *ngIf="authService.hasPermission('orders.view')">📋 Orders</a>
+        <a routerLink="/admin/revenue" class="admin-link" *ngIf="authService.hasPermission('revenue.view')">💰 Revenue</a>
+        <a routerLink="/admin/expenses" class="admin-link" *ngIf="authService.hasPermission('expenses.view')">💸 Expenses</a>
+        <a routerLink="/admin/feedback" class="admin-link" *ngIf="authService.hasPermission('feedback.view')">💬 Feedback</a>
+        <a routerLink="/admin/analytics" class="admin-link" *ngIf="authService.hasPermission('analytics.view')">📊 Analytics</a>
+        <a routerLink="/admin/inventory" class="admin-link" *ngIf="authService.hasPermission('inventory.view')">📦 Inventory</a>
+        <div class="admin-user-info">
+          <span class="admin-welcome">👤 {{ (authService.currentAdmin$ | async)?.username }}</span>
+          <button class="logout-btn" (click)="authService.logoutAndRedirect()">🚪 Logout</button>
+        </div>
+      </div>
+    </div>
+  </nav>
+</header>
+
+<main>
+  <router-outlet />
+</main>
+
+<!-- Global Modal Component -->
+<app-modal></app-modal>

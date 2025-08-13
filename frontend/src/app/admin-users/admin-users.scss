@@ -1,0 +1,535 @@
+.admin-users-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+
+  .header-section {
+    margin-bottom: 30px;
+
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+      font-size: 2.2em;
+    }
+
+    .tab-navigation {
+      display: flex;
+      border-bottom: 2px solid #eee;
+      margin-bottom: 20px;
+
+      .tab-btn {
+        padding: 12px 24px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 1.1em;
+        color: #666;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+
+        &:hover {
+          background: rgba(221, 75, 57, 0.1);
+          color: #dd4b39;
+        }
+
+        &.active {
+          color: #dd4b39;
+          border-bottom-color: #dd4b39;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+
+  .message {
+    padding: 12px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    font-weight: 500;
+
+    &.error-message {
+      background: #ffebee;
+      color: #c62828;
+      border-left: 4px solid #c62828;
+    }
+
+    &.success-message {
+      background: #e8f5e8;
+      color: #2e7d32;
+      border-left: 4px solid #2e7d32;
+    }
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 40px;
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #dd4b39;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+
+    h2 {
+      color: #333;
+      margin: 0;
+    }
+
+    .create-btn {
+      background: #dd4b39;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background: #c23c2c;
+      }
+    }
+  }
+
+  // Users Table Styles
+  .users-table {
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+
+      th, td {
+        padding: 15px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+
+      th {
+        background: #f8f9fa;
+        font-weight: 600;
+        color: #333;
+      }
+
+      tr:hover {
+        background: rgba(221, 75, 57, 0.05);
+      }
+
+      .role-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: 600;
+
+        &.role-super_admin {
+          background: #ff5722;
+          color: white;
+        }
+
+        &.role-admin {
+          background: #2196f3;
+          color: white;
+        }
+
+        &.role-manager {
+          background: #ff9800;
+          color: white;
+        }
+
+        &.role-viewer {
+          background: #4caf50;
+          color: white;
+        }
+      }
+
+      .status-badge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 0.8em;
+        font-weight: 600;
+
+        &.active {
+          background: #4caf50;
+          color: white;
+        }
+
+        &.inactive {
+          background: #f44336;
+          color: white;
+        }
+      }
+
+      .actions {
+        button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          margin-right: 8px;
+          padding: 8px;
+          border-radius: 4px;
+          transition: background-color 0.3s ease;
+
+          &.edit-btn:hover {
+            background: rgba(33, 150, 243, 0.1);
+          }
+
+          &.password-btn:hover {
+            background: rgba(255, 152, 0, 0.1);
+          }
+
+          &.delete-btn:hover {
+            background: rgba(244, 67, 54, 0.1);
+          }
+        }
+      }
+    }
+  }
+
+  // Roles Grid Styles
+  .roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+
+    .role-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+      }
+
+      .role-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 15px;
+
+        h3 {
+          margin: 0;
+          color: #333;
+        }
+
+        .role-actions {
+          display: flex;
+          gap: 8px;
+
+          button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background-color 0.3s ease;
+
+            &.edit-btn:hover {
+              background: rgba(33, 150, 243, 0.1);
+            }
+
+            &.delete-btn:hover {
+              background: rgba(244, 67, 54, 0.1);
+            }
+          }
+        }
+      }
+
+      .role-description {
+        color: #666;
+        margin-bottom: 15px;
+        line-height: 1.4;
+      }
+
+      .permissions-list {
+        h4 {
+          margin: 0 0 10px 0;
+          color: #333;
+          font-size: 0.9em;
+        }
+
+        .permission-tags {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 6px;
+
+          .permission-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+          }
+        }
+      }
+
+      .role-meta {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        font-size: 0.8em;
+        color: #999;
+      }
+    }
+  }
+
+  // Modal Styles
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+
+    .modal-content {
+      background: white;
+      border-radius: 8px;
+      max-width: 500px;
+      width: 90%;
+      max-height: 90vh;
+      overflow-y: auto;
+
+      &.role-modal {
+        max-width: 600px;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+
+        h3 {
+          margin: 0;
+          color: #333;
+        }
+
+        .close-btn {
+          background: none;
+          border: none;
+          font-size: 1.5em;
+          cursor: pointer;
+          color: #666;
+          padding: 0;
+          width: 30px;
+          height: 30px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          &:hover {
+            background: #f5f5f5;
+          }
+        }
+      }
+
+      form {
+        padding: 20px;
+
+        .form-group {
+          margin-bottom: 20px;
+
+          label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+          }
+
+          input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1em;
+            box-sizing: border-box;
+
+            &:focus {
+              outline: none;
+              border-color: #dd4b39;
+            }
+          }
+
+          &.checkbox-group {
+            label {
+              display: flex;
+              align-items: center;
+              cursor: pointer;
+
+              input[type="checkbox"] {
+                width: auto;
+                margin-right: 10px;
+              }
+            }
+          }
+        }
+
+        .permissions-selection {
+          max-height: 300px;
+          overflow-y: auto;
+          border: 1px solid #ddd;
+          border-radius: 4px;
+          padding: 15px;
+
+          .permission-group {
+            margin-bottom: 20px;
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+
+            .resource-title {
+              margin: 0 0 10px 0;
+              color: #dd4b39;
+              font-weight: 600;
+              font-size: 1.1em;
+              padding-bottom: 5px;
+              border-bottom: 1px solid #eee;
+            }
+
+            .permission-checkboxes {
+              .permission-checkbox {
+                display: flex;
+                align-items: flex-start;
+                margin-bottom: 8px;
+                cursor: pointer;
+
+                input[type="checkbox"] {
+                  width: auto;
+                  margin-right: 10px;
+                  margin-top: 2px;
+                  flex-shrink: 0;
+                }
+
+                .permission-info {
+                  display: flex;
+                  flex-direction: column;
+
+                  strong {
+                    color: #333;
+                    margin-bottom: 2px;
+                  }
+
+                  small {
+                    color: #666;
+                    font-size: 0.85em;
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 30px;
+
+          button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.3s ease;
+
+            &.cancel-btn {
+              background: #f5f5f5;
+              color: #666;
+
+              &:hover {
+                background: #e0e0e0;
+              }
+            }
+
+            &.save-btn {
+              background: #dd4b39;
+              color: white;
+
+              &:hover {
+                background: #c23c2c;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .admin-users-container {
+    padding: 10px;
+
+    .header-section {
+      .tab-navigation {
+        .tab-btn {
+          padding: 10px 16px;
+          font-size: 1em;
+        }
+      }
+    }
+
+    .users-table {
+      overflow-x: auto;
+
+      table {
+        min-width: 600px;
+      }
+    }
+
+    .roles-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .modal-overlay {
+      .modal-content {
+        width: 95%;
+        margin: 20px;
+        
+        &.role-modal {
+          max-width: none;
+        }
+      }
+    }
+  }
+}

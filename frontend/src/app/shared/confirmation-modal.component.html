@@ -1,0 +1,21 @@
+<div class="modal-overlay" *ngIf="isVisible" (click)="onOverlayClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="confirm-icon">❓</div>
+      <h3>{{ title }}</h3>
+    </div>
+    
+    <div class="modal-body">
+      <p>{{ message }}</p>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="cancel-btn" (click)="onCancel()">
+        {{ cancelText }}
+      </button>
+      <button [class]="confirmButtonClass" (click)="onConfirm()">
+        {{ confirmText }}
+      </button>
+    </div>
+  </div>
+</div>

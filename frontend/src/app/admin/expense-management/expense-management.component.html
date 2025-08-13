@@ -1,0 +1,38 @@
+<h2>Expense Management</h2>
+
+<form (submit)="addExpense(); $event.preventDefault()">
+  <label>
+    Date:
+    <input type="date" [(ngModel)]="newExpense.date" name="date" required />
+  </label>
+  <label>
+    Category:
+    <input
+      type="text"
+      [(ngModel)]="newExpense.category"
+      name="category"
+      required
+    />
+  </label>
+  <label>
+    Amount:
+    <input
+      type="number"
+      [(ngModel)]="newExpense.amount"
+      name="amount"
+      required
+    />
+  </label>
+  <label>
+    Notes:
+    <input type="text" [(ngModel)]="newExpense.notes" name="notes" />
+  </label>
+  <button type="submit">Add Expense</button>
+</form>
+
+<ul>
+  <li *ngFor="let expense of expenses">
+    {{ expense.date }} - {{ expense.category }} - ₱{{ expense.amount }}
+    <button (click)="deleteExpense(expense.id!)">Delete</button>
+  </li>
+</ul>

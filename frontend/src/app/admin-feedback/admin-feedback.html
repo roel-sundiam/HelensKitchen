@@ -1,0 +1,200 @@
+<div class="admin-feedback-container">
+  <div class="header-section">
+    <div class="header-content">
+      <h1>💬 Feedback Management</h1>
+      <p class="header-subtitle">Monitor and moderate customer feedback</p>
+    </div>
+    
+    <!-- Statistics Overview -->
+    <div class="stats-grid" *ngIf="stats">
+      <div class="stat-card total">
+        <div class="card-icon">📊</div>
+        <div class="card-content">
+          <div class="stat-number">{{stats.total_feedback}}</div>
+          <div class="stat-label">Total Feedback</div>
+        </div>
+      </div>
+      <div class="stat-card pending">
+        <div class="card-icon">⏳</div>
+        <div class="card-content">
+          <div class="stat-number">{{stats.pending_count}}</div>
+          <div class="stat-label">Pending Review</div>
+        </div>
+      </div>
+      <div class="stat-card approved">
+        <div class="card-icon">✅</div>
+        <div class="card-content">
+          <div class="stat-number">{{stats.approved_count}}</div>
+          <div class="stat-label">Approved</div>
+        </div>
+      </div>
+      <div class="stat-card rejected">
+        <div class="card-icon">❌</div>
+        <div class="card-content">
+          <div class="stat-number">{{stats.rejected_count}}</div>
+          <div class="stat-label">Rejected</div>
+        </div>
+      </div>
+      <div class="stat-card rating">
+        <div class="card-icon">⭐</div>
+        <div class="card-content">
+          <div class="stat-number">{{stats.average_rating | number:'1.1-1'}}</div>
+          <div class="stat-label">Avg Rating</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rating Distribution -->
+    <div class="rating-distribution" *ngIf="stats">
+      <div class="distribution-header">
+        <h3>📈 Rating Distribution</h3>
+      </div>
+      <div class="rating-bars">
+        <div class="rating-bar" *ngFor="let star of [5,4,3,2,1]">
+          <span class="star-label">{{star}} ⭐</span>
+          <div class="bar-container">
+            <div class="bar-fill" 
+                 [style.width.%]="stats.total_feedback > 0 ? (getStarCount(star) / stats.total_feedback * 100) : 0"
+                 [attr.data-star]="star">
+            </div>
+          </div>
+          <span class="star-count">{{getStarCount(star)}}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filters-header">
+      <h3>🔍 Filter Feedback</h3>
+    </div>
+    <div class="filters">
+      <div class="filter-group">
+        <label for="statusFilter">📊 Status</label>
+        <select id="statusFilter" [(ngModel)]="filterStatus" (change)="loadFeedback()">
+          <option value="">All Statuses</option>
+          <option value="pending">⏳ Pending</option>
+          <option value="approved">✅ Approved</option>
+          <option value="rejected">❌ Rejected</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label for="ratingFilter">⭐ Rating</label>
+        <select id="ratingFilter" [(ngModel)]="filterRating" (change)="loadFeedback()">
+          <option value="">All Ratings</option>
+          <option value="5">⭐⭐⭐⭐⭐ 5 Stars</option>
+          <option value="4">⭐⭐⭐⭐ 4 Stars</option>
+          <option value="3">⭐⭐⭐ 3 Stars</option>
+          <option value="2">⭐⭐ 2 Stars</option>
+          <option value="1">⭐ 1 Star</option>
+        </select>
+      </div>
+      
+      <button class="clear-filters-btn" (click)="clearFilters()">
+        🗑️ Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="error">
+    <div class="error-icon">⚠️</div>
+    <p>{{error}}</p>
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="loading-icon">⏳</div>
+    <p>Loading feedback...</p>
+  </div>
+
+  <!-- Feedback List -->
+  <div class="feedback-list" *ngIf="!isLoading">
+    <div class="feedback-item" *ngFor="let item of feedback" [class]="getStatusClass(item.status)">
+      <!-- Feedback Header -->
+      <div class="feedback-header">
+        <div class="customer-info">
+          <h4>{{item.customer_name}}</h4>
+          <p class="phone">{{item.phone}}</p>
+          <p class="order-info">Order #{{item.order_id}} - {{item.order_customer_name}} - ${{item.total_price}}</p>
+        </div>
+        <div class="feedback-meta">
+          <div class="rating" [class]="getRatingClass(item.rating)">
+            <span class="stars">{{getStars(item.rating)}}</span>
+            <span class="rating-text">{{item.rating}}/5</span>
+          </div>
+          <div class="status-badge" [class]="getStatusClass(item.status)">
+            {{item.status | titlecase}}
+          </div>
+          <div class="date">
+            {{item.created_at | date:'medium'}}
+          </div>
+        </div>
+      </div>
+
+      <!-- Feedback Content -->
+      <div class="feedback-content">
+        <div class="comment" *ngIf="item.comment">
+          "{{item.comment}}"
+        </div>
+        <div class="no-comment" *ngIf="!item.comment">
+          <em>No comment provided</em>
+        </div>
+      </div>
+
+      <!-- Moderation Info -->
+      <div class="moderation-info" *ngIf="item.moderated_at">
+        <p>
+          <strong>Moderated:</strong> {{item.moderated_at | date:'medium'}} 
+          <span *ngIf="item.moderated_by">by {{item.moderated_by}}</span>
+        </p>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button class="action-btn approve" 
+                (click)="updateStatus(item, 'approved')" 
+                [disabled]="item.status === 'approved'"
+                title="Approve feedback">
+          ✓ Approve
+        </button>
+        
+        <button class="action-btn reject" 
+                (click)="updateStatus(item, 'rejected')" 
+                [disabled]="item.status === 'rejected'"
+                title="Reject feedback">
+          ✗ Reject
+        </button>
+        
+        <button class="action-btn pending" 
+                (click)="updateStatus(item, 'pending')" 
+                [disabled]="item.status === 'pending'"
+                title="Mark as pending">
+          ⏳ Pending
+        </button>
+        
+        <button class="action-btn delete" 
+                (click)="deleteFeedback(item)"
+                title="Delete feedback permanently">
+          🗑️ Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="feedback.length === 0 && !isLoading">
+      <div class="empty-content">
+        <div class="empty-icon">💬</div>
+        <h3>No Feedback Found</h3>
+        <p *ngIf="filterStatus || filterRating">
+          No feedback matches your current filters. Try adjusting your search criteria.
+        </p>
+        <p *ngIf="!filterStatus && !filterRating">
+          No customer feedback has been submitted yet.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

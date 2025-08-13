@@ -1,0 +1,25 @@
+<div class="modal-overlay" *ngIf="isVisible" (click)="onOverlayClick($event)">
+  <div class="modal-content" [class]="getTypeClass()" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="notification-icon">{{ getIcon() }}</div>
+      <h3>{{ title }}</h3>
+      <button class="close-btn" (click)="close()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <p>{{ message }}</p>
+      <div *ngIf="details" class="notification-details">
+        <details>
+          <summary>Technical Details</summary>
+          <pre>{{ details }}</pre>
+        </details>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="ok-btn" [class]="getTypeClass() + '-btn'" (click)="close()">
+        OK
+      </button>
+    </div>
+  </div>
+</div>

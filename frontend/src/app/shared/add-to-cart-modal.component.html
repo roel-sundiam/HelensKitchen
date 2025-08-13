@@ -1,0 +1,32 @@
+<div class="modal-overlay" *ngIf="isVisible" (click)="onOverlayClick($event)">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>✅ Added to Cart!</h3>
+      <button class="close-btn" (click)="close()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="item-info">
+        <img [src]="itemImage" [alt]="itemName" class="item-image">
+        <div class="item-details">
+          <h4>{{ itemName }}</h4>
+          <p class="variant">{{ variant }}</p>
+          <p class="price">₱{{ price.toFixed(2) }}</p>
+        </div>
+      </div>
+      
+      <div class="success-message">
+        <p>Your item has been successfully added to your cart!</p>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="onContinueShopping()">
+        Continue Shopping
+      </button>
+      <button class="btn-primary" (click)="onViewCart()">
+        View Cart ({{ cartCount }})
+      </button>
+    </div>
+  </div>
+</div>

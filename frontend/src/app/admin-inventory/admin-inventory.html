@@ -1,0 +1,315 @@
+<div class="admin-inventory-container">
+  <div class="admin-content">
+    <!-- Header -->
+    <div class="admin-header">
+      <div class="header-content">
+        <h2>📦 Inventory Management</h2>
+        <p class="header-subtitle">Track and manage your ingredient inventory</p>
+      </div>
+      <div class="inventory-stats" *ngIf="ingredients.length > 0">
+        <div class="stat-card ok">
+          <div class="stat-icon">✅</div>
+          <div class="stat-content">
+            <div class="stat-number">{{getStockCount('ok')}}</div>
+            <div class="stat-label">OK Stock</div>
+          </div>
+        </div>
+        <div class="stat-card low">
+          <div class="stat-icon">⚠️</div>
+          <div class="stat-content">
+            <div class="stat-number">{{getStockCount('low')}}</div>
+            <div class="stat-label">Low Stock</div>
+          </div>
+        </div>
+        <div class="stat-card out">
+          <div class="stat-icon">❌</div>
+          <div class="stat-content">
+            <div class="stat-number">{{getStockCount('out')}}</div>
+            <div class="stat-label">Out of Stock</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error/Success Messages -->
+    <div class="message error-message" *ngIf="error">
+      ⚠️ {{error}}
+    </div>
+    
+    <div class="message success-message" *ngIf="successMessage">
+      ✅ {{successMessage}}
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading-state" *ngIf="isLoading">
+      <div class="spinner"></div>
+      <p>Loading inventory...</p>
+    </div>
+
+    <!-- Inventory Content -->
+    <div class="inventory-content" *ngIf="!isLoading">
+      
+      <!-- Filters and Actions -->
+      <div class="controls-section">
+        <div class="filters">
+          <label>
+            Filter by Stock Status:
+            <select [(ngModel)]="stockFilter" name="stockFilter">
+              <option value="all">All Items</option>
+              <option value="ok">OK Stock</option>
+              <option value="low">Low Stock</option>
+              <option value="out">Out of Stock</option>
+            </select>
+          </label>
+        </div>
+        
+        <div class="actions">
+          <button class="create-btn" 
+                  (click)="showCreateIngredientForm()"
+                  *ngIf="hasPermission('inventory.manage')">
+            ➕ Add Ingredient
+          </button>
+        </div>
+      </div>
+
+      <!-- Ingredients Table -->
+      <div class="ingredients-section">
+        <div class="table-container">
+          <table class="ingredients-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>Current Stock</th>
+                <th>Minimum Stock</th>
+                <th>Status</th>
+                <th>Unit Cost</th>
+                <th>Supplier</th>
+                <th>Used In Items</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let ingredient of getFilteredIngredients()" 
+                  [class]="'ingredient-row ' + getStockStatusClass(ingredient.stock_status)">
+                <td class="ingredient-info">
+                  <div class="ingredient-name">{{ingredient.name}}</div>
+                  <div class="ingredient-description" *ngIf="ingredient.description">
+                    {{ingredient.description}}
+                  </div>
+                </td>
+                <td class="stock-amount">
+                  <span class="stock-value">{{ingredient.current_stock}}</span>
+                  <span class="stock-unit">{{ingredient.unit}}</span>
+                </td>
+                <td class="min-stock">{{ingredient.minimum_stock}} {{ingredient.unit}}</td>
+                <td>
+                  <span class="status-badge" [class]="getStockStatusClass(ingredient.stock_status)">
+                    {{getStockStatusText(ingredient.stock_status)}}
+                  </span>
+                </td>
+                <td>{{formatCurrency(ingredient.cost_per_unit)}}/{{ingredient.unit}}</td>
+                <td>{{ingredient.supplier || 'N/A'}}</td>
+                <td class="used-in-items">{{ingredient.used_in_items}} items</td>
+                <td class="actions">
+                  <button class="action-btn stock-btn" 
+                          (click)="showStockUpdateForm(ingredient)"
+                          *ngIf="hasPermission('inventory.update')"
+                          title="Update Stock">
+                    📊
+                  </button>
+                  <button class="action-btn edit-btn" 
+                          (click)="editIngredient(ingredient)"
+                          *ngIf="hasPermission('inventory.manage')"
+                          title="Edit Ingredient">
+                    ✏️
+                  </button>
+                  <button class="action-btn delete-btn" 
+                          (click)="deleteIngredient(ingredient)"
+                          *ngIf="hasPermission('inventory.manage')"
+                          title="Delete Ingredient">
+                    🗑️
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="empty-state" *ngIf="getFilteredIngredients().length === 0">
+          <p>No ingredients found.</p>
+        </div>
+      </div>
+
+      <!-- Recent Movements -->
+      <div class="movements-section" *ngIf="movements.length > 0">
+        <h3>🔄 Recent Stock Movements</h3>
+        <div class="movements-list">
+          <div class="movement-item" *ngFor="let movement of movements.slice(0, 10)" 
+               [class]="getMovementTypeClass(movement.movement_type)">
+            <div class="movement-icon">{{getMovementTypeIcon(movement.movement_type)}}</div>
+            <div class="movement-details">
+              <div class="movement-header">
+                <span class="ingredient-name">{{movement.ingredient_name}}</span>
+                <span class="movement-quantity" 
+                      [class.positive]="movement.quantity > 0"
+                      [class.negative]="movement.quantity < 0">
+                  {{movement.quantity > 0 ? '+' : ''}}{{movement.quantity}} {{movement.unit}}
+                </span>
+              </div>
+              <div class="movement-info">
+                <span class="movement-type">{{movement.movement_type | titlecase}}</span>
+                <span class="movement-reason" *ngIf="movement.reason">- {{movement.reason}}</span>
+                <span class="movement-admin" *ngIf="movement.admin_username">by {{movement.admin_username}}</span>
+              </div>
+              <div class="movement-date">{{formatDate(movement.created_at)}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ingredient Form Modal -->
+  <div class="modal-overlay" *ngIf="showIngredientForm" (click)="clearForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editingIngredientId ? 'Edit Ingredient' : 'Add New Ingredient'}}</h3>
+        <button class="close-btn" (click)="clearForms()">✕</button>
+      </div>
+      
+      <form class="ingredient-form" (ngSubmit)="saveIngredient()">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Name *</label>
+            <input type="text" 
+                   id="name" 
+                   [(ngModel)]="ingredientForm.name" 
+                   name="name" 
+                   required>
+          </div>
+          
+          <div class="form-group">
+            <label for="unit">Unit *</label>
+            <select id="unit" 
+                    [(ngModel)]="ingredientForm.unit" 
+                    name="unit" 
+                    required>
+              <option value="">Select unit</option>
+              <option *ngFor="let unit of commonUnits" [value]="unit">{{unit}}</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea id="description" 
+                    [(ngModel)]="ingredientForm.description" 
+                    name="description" 
+                    rows="2"></textarea>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="current_stock">Current Stock *</label>
+            <input type="number" 
+                   id="current_stock" 
+                   [(ngModel)]="ingredientForm.current_stock" 
+                   name="current_stock" 
+                   min="0" 
+                   step="any"
+                   required>
+          </div>
+          
+          <div class="form-group">
+            <label for="minimum_stock">Minimum Stock *</label>
+            <input type="number" 
+                   id="minimum_stock" 
+                   [(ngModel)]="ingredientForm.minimum_stock" 
+                   name="minimum_stock" 
+                   min="0" 
+                   step="any"
+                   required>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cost_per_unit">Cost per Unit</label>
+            <input type="number" 
+                   id="cost_per_unit" 
+                   [(ngModel)]="ingredientForm.cost_per_unit" 
+                   name="cost_per_unit" 
+                   min="0" 
+                   step="0.01">
+          </div>
+          
+          <div class="form-group">
+            <label for="supplier">Supplier</label>
+            <input type="text" 
+                   id="supplier" 
+                   [(ngModel)]="ingredientForm.supplier" 
+                   name="supplier">
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="clearForms()">Cancel</button>
+          <button type="submit" class="save-btn">
+            {{editingIngredientId ? 'Update Ingredient' : 'Create Ingredient'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Stock Update Modal -->
+  <div class="modal-overlay" *ngIf="showStockForm" (click)="clearForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Update Stock</h3>
+        <button class="close-btn" (click)="clearForms()">✕</button>
+      </div>
+      
+      <form class="stock-form" (ngSubmit)="updateStock()">
+        <div class="form-group">
+          <label for="movement_type">Movement Type *</label>
+          <select id="movement_type" 
+                  [(ngModel)]="stockForm.movement_type" 
+                  name="movement_type" 
+                  required>
+            <option value="purchase">Purchase (Add Stock)</option>
+            <option value="adjustment">Adjustment</option>
+            <option value="waste">Waste (Remove Stock)</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="quantity">Quantity *</label>
+          <input type="number" 
+                 id="quantity" 
+                 [(ngModel)]="stockForm.quantity" 
+                 name="quantity" 
+                 step="any"
+                 required>
+          <small class="form-help">
+            Use positive numbers to add stock, negative to remove stock
+          </small>
+        </div>
+        
+        <div class="form-group">
+          <label for="reason">Reason</label>
+          <input type="text" 
+                 id="reason" 
+                 [(ngModel)]="stockForm.reason" 
+                 name="reason"
+                 placeholder="Optional reason for this stock change">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="clearForms()">Cancel</button>
+          <button type="submit" class="save-btn">Update Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,240 @@
+<div class="analytics-container">
+  <div class="header-section">
+    <div class="header-content">
+      <h1>📊 Site Analytics Dashboard</h1>
+      <p class="header-subtitle">Comprehensive insights into your website performance</p>
+    </div>
+    
+    <!-- Date Range Filter -->
+    <div class="date-filter">
+      <div class="filter-group">
+        <label for="startDate">📅 Start Date</label>
+        <input type="date" 
+               id="startDate" 
+               [(ngModel)]="startDate" 
+               (change)="onDateRangeChange()">
+      </div>
+      <div class="filter-group">
+        <label for="endDate">📅 End Date</label>
+        <input type="date" 
+               id="endDate" 
+               [(ngModel)]="endDate" 
+               (change)="onDateRangeChange()">
+      </div>
+      <button class="export-btn" (click)="exportData()">
+        📥 Export Data
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div class="error-message" *ngIf="error">
+    ⚠️ {{error}}
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading analytics data...</p>
+  </div>
+
+  <!-- Analytics Content -->
+  <div class="analytics-content" *ngIf="!isLoading && !error">
+    
+    <!-- Overview Statistics -->
+    <div class="overview-section" *ngIf="overview">
+      <h2>📈 Overview</h2>
+      <div class="stats-grid">
+        <div class="stat-card sessions">
+          <div class="stat-number">{{overview.total_sessions || 0}}</div>
+          <div class="stat-label">Total Sessions</div>
+          <div class="stat-breakdown">
+            <span class="user-sessions">👥 {{overview.user_sessions || 0}} Users</span>
+            <span class="admin-sessions">🔧 {{overview.admin_sessions || 0}} Admin</span>
+          </div>
+        </div>
+        
+        <div class="stat-card page-views">
+          <div class="stat-number">{{overview.total_page_views || 0}}</div>
+          <div class="stat-label">Page Views</div>
+        </div>
+        
+        <div class="stat-card events">
+          <div class="stat-number">{{overview.total_events || 0}}</div>
+          <div class="stat-label">Events Tracked</div>
+        </div>
+        
+        <div class="stat-card duration">
+          <div class="stat-number">{{formatDuration(overview.avg_session_duration_minutes)}}</div>
+          <div class="stat-label">Avg Session Duration</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Page Views Analytics -->
+    <div class="page-views-section">
+      <div class="section-header">
+        <h2>📄 Page Views</h2>
+        <div class="controls">
+          <select [(ngModel)]="pageViewGroupBy" (change)="onPageViewGroupByChange()">
+            <option value="page">Group by Page</option>
+            <option value="day">Group by Day</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="analytics-grid">
+        <!-- Top Pages -->
+        <div class="chart-container">
+          <h3>🔝 Top Pages</h3>
+          <div class="top-pages-list">
+            <div class="page-item" *ngFor="let page of getTopPages(); let i = index">
+              <div class="page-rank">{{i + 1}}</div>
+              <div class="page-info">
+                <div class="page-path">{{page.page_path}}</div>
+                <div class="page-stats">
+                  <span class="views">👀 {{page.views}} views</span>
+                  <span class="unique">👤 {{page.unique_visitors}} unique</span>
+                  <span class="time" *ngIf="page.avg_time_on_page">
+                    ⏱️ {{formatDuration(page.avg_time_on_page)}}
+                  </span>
+                </div>
+              </div>
+              <div class="page-bar">
+                <div class="bar-fill" 
+                     [style.width.%]="getTopPageBarWidth(page)">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="empty-state" *ngIf="getTopPages().length === 0">
+            <p>No page view data available for the selected period.</p>
+          </div>
+        </div>
+
+        <!-- Page Views Chart (Simple Bar Chart) -->
+        <div class="chart-container" *ngIf="pageViewGroupBy === 'day'">
+          <h3>📊 Daily Page Views</h3>
+          <div class="simple-chart">
+            <div class="chart-bar" *ngFor="let item of getPageViewsChartData().slice(0, 7)">
+              <div class="bar-container">
+                <div class="bar-fill" 
+                     [style.height.%]="getPageViewChartHeight(item)">
+                </div>
+              </div>
+              <div class="bar-label">{{item.label}}</div>
+              <div class="bar-value">{{item.value}}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Events Analytics -->
+    <div class="events-section">
+      <div class="section-header">
+        <h2>⚡ Events</h2>
+        <div class="controls">
+          <select [(ngModel)]="selectedEventType" (change)="onEventTypeChange()">
+            <option value="">All Event Types</option>
+            <option value="user_action">User Actions</option>
+            <option value="navigation">Navigation</option>
+            <option value="api_call">API Calls</option>
+            <option value="form_submission">Form Submissions</option>
+          </select>
+          <select [(ngModel)]="eventGroupBy" (change)="onEventGroupByChange()">
+            <option value="type">Group by Type</option>
+            <option value="day">Group by Day</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="events-list">
+        <div class="event-item" *ngFor="let event of getTopEvents(); let i = index">
+          <div class="event-rank">{{i + 1}}</div>
+          <div class="event-info">
+            <div class="event-type">
+              <span class="type-badge" [class]="'type-' + event.event_type">{{event.event_type}}</span>
+              <span class="event-category" *ngIf="event.event_category">{{event.event_category}}</span>
+            </div>
+            <div class="event-action" *ngIf="event.event_action">{{event.event_action}}</div>
+            <div class="event-label" *ngIf="event.event_label">{{event.event_label}}</div>
+          </div>
+          <div class="event-stats">
+            <div class="event-count">{{event.event_count}} events</div>
+            <div class="unique-sessions">{{event.unique_sessions}} sessions</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="empty-state" *ngIf="getTopEvents().length === 0">
+        <p>No event data available for the selected period.</p>
+      </div>
+    </div>
+
+    <!-- Sessions Analytics -->
+    <div class="sessions-section">
+      <h2>👥 Sessions</h2>
+      
+      <div class="sessions-chart">
+        <h3>Daily Sessions</h3>
+        <div class="simple-chart">
+          <div class="chart-bar" *ngFor="let session of sessions.slice(0, 14).reverse()">
+            <div class="bar-container">
+              <div class="bar-fill session-bar"
+                   [style.height.%]="getSessionChartHeight(session)">
+              </div>
+            </div>
+            <div class="bar-label">{{formatDate(session.date)}}</div>
+            <div class="bar-value">{{session.sessions}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sessions-table">
+        <h3>Session Details</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Sessions</th>
+              <th>Unique Visitors</th>
+              <th>Avg Duration</th>
+              <th>Admin Sessions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let session of sessions.slice(0, 10)">
+              <td>{{formatDate(session.date)}}</td>
+              <td>{{session.sessions}}</td>
+              <td>{{session.unique_visitors}}</td>
+              <td>{{formatDuration(session.avg_duration_minutes)}}</td>
+              <td>{{session.admin_sessions}}</td>
+            </tr>
+          </tbody>
+        </table>
+        
+        <div class="empty-state" *ngIf="sessions.length === 0">
+          <p>No session data available for the selected period.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions">
+      <h2>⚡ Quick Actions</h2>
+      <div class="action-buttons">
+        <button class="action-btn" (click)="loadAllAnalytics()">
+          🔄 Refresh Data
+        </button>
+        <button class="action-btn" (click)="exportData()">
+          📥 Export Report
+        </button>
+        <button class="action-btn" onclick="window.print()">
+          🖨️ Print Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

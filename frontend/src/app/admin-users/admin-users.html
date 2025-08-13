@@ -1,0 +1,328 @@
+<div class="admin-users-container">
+  <div class="header-section">
+    <h1>👥 Admin User Management</h1>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+      <button class="tab-btn" 
+              [class.active]="activeTab === 'users'"
+              (click)="switchTab('users')">
+        👤 Users
+      </button>
+      <button class="tab-btn" 
+              [class.active]="activeTab === 'roles'"
+              (click)="switchTab('roles')"
+              *ngIf="hasPermission('roles.view')">
+        🔐 Roles & Permissions
+      </button>
+    </div>
+  </div>
+
+  <!-- Error/Success Messages -->
+  <div class="message error-message" *ngIf="error">
+    ⚠️ {{error}}
+  </div>
+  
+  <div class="message success-message" *ngIf="successMessage">
+    ✅ {{successMessage}}
+  </div>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <div class="spinner"></div>
+    <p>Loading data...</p>
+  </div>
+
+  <!-- Users Tab -->
+  <div class="users-content" *ngIf="activeTab === 'users' && !isLoading">
+    <div class="section-header">
+      <h2>Admin Users</h2>
+      <button class="create-btn" 
+              (click)="showCreateUserForm()"
+              *ngIf="hasPermission('users.create')">
+        ➕ Create User
+      </button>
+    </div>
+
+    <!-- Users Table -->
+    <div class="users-table" *ngIf="users.length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Last Login</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>{{user.username}}</td>
+            <td>{{user.full_name}}</td>
+            <td>{{user.email}}</td>
+            <td>
+              <span class="role-badge" [class]="'role-' + user.role_name">
+                {{user.role_name}}
+              </span>
+            </td>
+            <td>
+              <span class="status-badge" [class.active]="user.is_active" [class.inactive]="!user.is_active">
+                {{user.is_active ? 'Active' : 'Inactive'}}
+              </span>
+            </td>
+            <td>{{formatDate(user.last_login)}}</td>
+            <td class="actions">
+              <button class="edit-btn" 
+                      (click)="editUser(user)"
+                      *ngIf="hasPermission('users.update')"
+                      title="Edit User">
+                ✏️
+              </button>
+              <button class="password-btn" 
+                      (click)="showChangePasswordForm(user)"
+                      *ngIf="hasPermission('users.update')"
+                      title="Change Password">
+                🔑
+              </button>
+              <button class="delete-btn" 
+                      (click)="deleteUser(user)"
+                      *ngIf="hasPermission('users.delete')"
+                      title="Delete User">
+                🗑️
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="empty-state" *ngIf="users.length === 0">
+      <p>No admin users found.</p>
+    </div>
+  </div>
+
+  <!-- Roles Tab -->
+  <div class="roles-content" *ngIf="activeTab === 'roles' && !isLoading && hasPermission('roles.view')">
+    <div class="section-header">
+      <h2>Roles & Permissions</h2>
+      <button class="create-btn" 
+              (click)="showCreateRoleForm()"
+              *ngIf="hasPermission('roles.create')">
+        ➕ Create Role
+      </button>
+    </div>
+
+    <!-- Roles Grid -->
+    <div class="roles-grid" *ngIf="roles.length > 0">
+      <div class="role-card" *ngFor="let role of roles">
+        <div class="role-header">
+          <h3>{{role.name}}</h3>
+          <div class="role-actions" *ngIf="hasPermission('roles.update') || hasPermission('roles.delete')">
+            <button class="edit-btn" 
+                    (click)="editRole(role)"
+                    *ngIf="hasPermission('roles.update')"
+                    title="Edit Role">
+              ✏️
+            </button>
+            <button class="delete-btn" 
+                    (click)="deleteRole(role)"
+                    *ngIf="hasPermission('roles.delete')"
+                    title="Delete Role">
+              🗑️
+            </button>
+          </div>
+        </div>
+        <p class="role-description">{{role.description}}</p>
+        <div class="permissions-list">
+          <h4>Permissions ({{role.permissions.length}}):</h4>
+          <div class="permission-tags">
+            <span class="permission-tag" *ngFor="let permission of role.permissions">
+              {{permission}}
+            </span>
+          </div>
+        </div>
+        <div class="role-meta">
+          Created: {{formatDate(role.created_at)}}
+        </div>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="roles.length === 0">
+      <p>No roles found.</p>
+    </div>
+  </div>
+
+  <!-- User Form Modal -->
+  <div class="modal-overlay" *ngIf="showUserForm" (click)="clearForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editingUserId ? 'Edit User' : 'Create New User'}}</h3>
+        <button class="close-btn" (click)="clearForms()">✕</button>
+      </div>
+      
+      <form class="user-form" (ngSubmit)="saveUser()">
+        <div class="form-group">
+          <label for="username">Username *</label>
+          <input type="text" 
+                 id="username" 
+                 [(ngModel)]="userForm.username" 
+                 name="username" 
+                 required>
+        </div>
+        
+        <div class="form-group" *ngIf="!editingUserId">
+          <label for="password">Password *</label>
+          <input type="password" 
+                 id="password" 
+                 [(ngModel)]="userForm.password" 
+                 name="password" 
+                 required>
+        </div>
+        
+        <div class="form-group">
+          <label for="full_name">Full Name *</label>
+          <input type="text" 
+                 id="full_name" 
+                 [(ngModel)]="userForm.full_name" 
+                 name="full_name" 
+                 required>
+        </div>
+        
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <input type="email" 
+                 id="email" 
+                 [(ngModel)]="userForm.email" 
+                 name="email" 
+                 required>
+        </div>
+        
+        <div class="form-group">
+          <label for="role_id">Role *</label>
+          <select id="role_id" 
+                  [(ngModel)]="userForm.role_id" 
+                  name="role_id" 
+                  required>
+            <option value="">Select a role</option>
+            <option *ngFor="let role of roles" [value]="role.id">
+              {{role.name}} - {{role.description}}
+            </option>
+          </select>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" 
+                   [(ngModel)]="userForm.is_active" 
+                   name="is_active">
+            User is active
+          </label>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="clearForms()">Cancel</button>
+          <button type="submit" class="save-btn">
+            {{editingUserId ? 'Update User' : 'Create User'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Password Change Modal -->
+  <div class="modal-overlay" *ngIf="showPasswordForm" (click)="clearForms()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Change Password</h3>
+        <button class="close-btn" (click)="clearForms()">✕</button>
+      </div>
+      
+      <form class="password-form" (ngSubmit)="changePassword()">
+        <div class="form-group">
+          <label for="new_password">New Password *</label>
+          <input type="password" 
+                 id="new_password" 
+                 [(ngModel)]="passwordForm.password" 
+                 name="password" 
+                 required 
+                 minlength="6">
+        </div>
+        
+        <div class="form-group">
+          <label for="confirm_password">Confirm Password *</label>
+          <input type="password" 
+                 id="confirm_password" 
+                 [(ngModel)]="passwordForm.confirmPassword" 
+                 name="confirmPassword" 
+                 required 
+                 minlength="6">
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="clearForms()">Cancel</button>
+          <button type="submit" class="save-btn">Change Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Role Form Modal -->
+  <div class="modal-overlay" *ngIf="showRoleForm" (click)="clearForms()">
+    <div class="modal-content role-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{editingRoleId ? 'Edit Role' : 'Create New Role'}}</h3>
+        <button class="close-btn" (click)="clearForms()">✕</button>
+      </div>
+      
+      <form class="role-form" (ngSubmit)="saveRole()">
+        <div class="form-group">
+          <label for="role_name">Role Name *</label>
+          <input type="text" 
+                 id="role_name" 
+                 [(ngModel)]="roleForm.name" 
+                 name="name" 
+                 required>
+        </div>
+        
+        <div class="form-group">
+          <label for="role_description">Description *</label>
+          <textarea id="role_description" 
+                    [(ngModel)]="roleForm.description" 
+                    name="description" 
+                    rows="3" 
+                    required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label>Permissions</label>
+          <div class="permissions-selection">
+            <div class="permission-group" *ngFor="let resource of getPermissionsByResource() | keyvalue">
+              <h4 class="resource-title">{{resource.key | titlecase}}</h4>
+              <div class="permission-checkboxes">
+                <label class="permission-checkbox" *ngFor="let permission of resource.value">
+                  <input type="checkbox" 
+                         [checked]="isPermissionSelected(permission.id)"
+                         (change)="togglePermission(permission.id)">
+                  <span class="permission-info">
+                    <strong>{{permission.action | titlecase}}</strong>
+                    <small>{{permission.description}}</small>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="clearForms()">Cancel</button>
+          <button type="submit" class="save-btn">
+            {{editingRoleId ? 'Update Role' : 'Create Role'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
