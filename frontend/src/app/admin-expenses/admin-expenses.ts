@@ -61,7 +61,7 @@ export class AdminExpenses implements OnInit {
 
   loadExpenses() {
     this.isLoading = true;
-    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { withCredentials: true }).subscribe({
+    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (data) => {
         this.expenses = data.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         this.isLoading = false;
@@ -85,7 +85,7 @@ export class AdminExpenses implements OnInit {
 
     if (this.editingExpense) {
       // Update existing expense
-      this.http.put(`${environment.apiUrl}/admin/expenses/${this.editingExpense.id}`, expenseData, { withCredentials: true }).subscribe({
+      this.http.put(`${environment.apiUrl}/admin/expenses/${this.editingExpense.id}`, expenseData, { headers: this.authService.getAuthHeaders() }).subscribe({
         next: () => {
           this.modalService.showAlert('Success', 'Expense updated successfully', '✅');
           this.loadExpenses();
@@ -99,7 +99,7 @@ export class AdminExpenses implements OnInit {
       });
     } else {
       // Create new expense
-      this.http.post(`${environment.apiUrl}/admin/expenses`, expenseData, { withCredentials: true }).subscribe({
+      this.http.post(`${environment.apiUrl}/admin/expenses`, expenseData, { headers: this.authService.getAuthHeaders() }).subscribe({
         next: () => {
           this.modalService.showAlert('Success', 'Expense added successfully', '✅');
           this.loadExpenses();
@@ -138,7 +138,7 @@ export class AdminExpenses implements OnInit {
     }
 
     this.isLoading = true;
-    this.http.delete(`${environment.apiUrl}/admin/expenses/${expense.id}`, { withCredentials: true }).subscribe({
+    this.http.delete(`${environment.apiUrl}/admin/expenses/${expense.id}`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: () => {
         this.modalService.showAlert('Success', 'Expense deleted successfully', '✅');
         this.loadExpenses();

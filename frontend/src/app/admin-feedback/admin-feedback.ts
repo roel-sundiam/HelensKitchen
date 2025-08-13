@@ -71,7 +71,7 @@ export class AdminFeedback implements OnInit {
 
     this.http.get<FeedbackData[]>(`${environment.apiUrl}/admin/feedback`, { 
       params, 
-      withCredentials: true 
+      headers: this.authService.getAuthHeaders() 
     }).subscribe({
       next: (data) => {
         this.feedback = data;
@@ -87,7 +87,7 @@ export class AdminFeedback implements OnInit {
 
   loadStats() {
     this.http.get<FeedbackStats>(`${environment.apiUrl}/admin/feedback/stats`, { 
-      withCredentials: true 
+      headers: this.authService.getAuthHeaders() 
     }).subscribe({
       next: (data) => {
         this.stats = data;
@@ -114,7 +114,7 @@ export class AdminFeedback implements OnInit {
 
     this.http.put(`${environment.apiUrl}/admin/feedback/${feedback.id}/status`, 
       { status: newStatus }, 
-      { withCredentials: true }
+      { headers: this.authService.getAuthHeaders() }
     ).subscribe({
       next: () => {
         feedback.status = newStatus;
@@ -144,7 +144,7 @@ export class AdminFeedback implements OnInit {
     }
 
     this.http.delete(`${environment.apiUrl}/admin/feedback/${feedback.id}`, { 
-      withCredentials: true 
+      headers: this.authService.getAuthHeaders() 
     }).subscribe({
       next: () => {
         this.feedback = this.feedback.filter(f => f.id !== feedback.id);

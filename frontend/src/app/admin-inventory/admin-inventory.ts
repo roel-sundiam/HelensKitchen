@@ -94,7 +94,7 @@ export class AdminInventoryComponent implements OnInit {
 
   loadInventory() {
     this.isLoading = true;
-    this.http.get<Ingredient[]>(`${environment.apiUrl}/admin/inventory`, { withCredentials: true }).subscribe({
+    this.http.get<Ingredient[]>(`${environment.apiUrl}/admin/inventory`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (data) => {
         this.ingredients = data;
         this.isLoading = false;
@@ -108,7 +108,7 @@ export class AdminInventoryComponent implements OnInit {
   }
 
   loadMovements() {
-    this.http.get<StockMovement[]>(`${environment.apiUrl}/admin/inventory/movements?limit=20`, { withCredentials: true }).subscribe({
+    this.http.get<StockMovement[]>(`${environment.apiUrl}/admin/inventory/movements?limit=20`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (data) => {
         this.movements = data;
       },
@@ -186,7 +186,7 @@ export class AdminInventoryComponent implements OnInit {
 
     this.http.request(method, url, {
       body: this.ingredientForm,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     }).subscribe({
       next: () => {
         this.successMessage = this.editingIngredientId ? 
@@ -215,7 +215,7 @@ export class AdminInventoryComponent implements OnInit {
       return;
     }
 
-    this.http.delete(`${environment.apiUrl}/admin/inventory/${ingredient.id}`, { withCredentials: true }).subscribe({
+    this.http.delete(`${environment.apiUrl}/admin/inventory/${ingredient.id}`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: () => {
         this.successMessage = 'Ingredient deleted successfully';
         this.loadInventory();
@@ -244,7 +244,7 @@ export class AdminInventoryComponent implements OnInit {
       return;
     }
 
-    this.http.put(`${environment.apiUrl}/admin/inventory/${this.stockUpdateIngredientId}/stock`, this.stockForm, { withCredentials: true }).subscribe({
+    this.http.put(`${environment.apiUrl}/admin/inventory/${this.stockUpdateIngredientId}/stock`, this.stockForm, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (response: any) => {
         this.successMessage = `Stock updated successfully. New stock: ${response.new_stock}`;
         this.showStockForm = false;

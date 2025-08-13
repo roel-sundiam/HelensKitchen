@@ -108,7 +108,7 @@ export class AdminUsersComponent implements OnInit {
 
   private loadUsers(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.http.get<AdminUser[]>('/api/admin/users', { withCredentials: true }).subscribe({
+      this.http.get<AdminUser[]>('/api/admin/users', { headers: this.authService.getAuthHeaders() }).subscribe({
         next: (data) => {
           this.users = data;
           resolve();
@@ -120,7 +120,7 @@ export class AdminUsersComponent implements OnInit {
 
   private loadRoles(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.http.get<Role[]>('/api/admin/roles', { withCredentials: true }).subscribe({
+      this.http.get<Role[]>('/api/admin/roles', { headers: this.authService.getAuthHeaders() }).subscribe({
         next: (data) => {
           this.roles = data;
           resolve();
@@ -132,7 +132,7 @@ export class AdminUsersComponent implements OnInit {
 
   private loadPermissions(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.http.get<Permission[]>('/api/admin/permissions', { withCredentials: true }).subscribe({
+      this.http.get<Permission[]>('/api/admin/permissions', { headers: this.authService.getAuthHeaders() }).subscribe({
         next: (data) => {
           this.permissions = data;
           resolve();
@@ -208,7 +208,7 @@ export class AdminUsersComponent implements OnInit {
 
     this.http.request(method, url, {
       body: userData,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     }).subscribe({
       next: () => {
         this.successMessage = this.editingUserId ? 
@@ -226,7 +226,7 @@ export class AdminUsersComponent implements OnInit {
 
   deleteUser(user: AdminUser) {
     if (confirm(`Are you sure you want to delete user "${user.username}"?`)) {
-      this.http.delete(`/api/admin/users/${user.id}`, { withCredentials: true }).subscribe({
+      this.http.delete(`/api/admin/users/${user.id}`, { headers: this.authService.getAuthHeaders() }).subscribe({
         next: () => {
           this.successMessage = 'User deleted successfully';
           this.loadUsers();
@@ -267,7 +267,7 @@ export class AdminUsersComponent implements OnInit {
 
     this.http.put(`/api/admin/users/${this.passwordChangeUserId}/password`, {
       password: this.passwordForm.password
-    }, { withCredentials: true }).subscribe({
+    }, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: () => {
         this.successMessage = 'Password changed successfully';
         this.showPasswordForm = false;
@@ -317,7 +317,7 @@ export class AdminUsersComponent implements OnInit {
 
     this.http.request(method, url, {
       body: this.roleForm,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     }).subscribe({
       next: () => {
         this.successMessage = this.editingRoleId ? 
@@ -335,7 +335,7 @@ export class AdminUsersComponent implements OnInit {
 
   deleteRole(role: Role) {
     if (confirm(`Are you sure you want to delete role "${role.name}"?`)) {
-      this.http.delete(`/api/admin/roles/${role.id}`, { withCredentials: true }).subscribe({
+      this.http.delete(`/api/admin/roles/${role.id}`, { headers: this.authService.getAuthHeaders() }).subscribe({
         next: () => {
           this.successMessage = 'Role deleted successfully';
           this.loadRoles();

@@ -58,7 +58,7 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   }
 
   loadRevenueData() {
-    this.http.get<RevenueData[]>(`${environment.apiUrl}/admin/revenue`, { withCredentials: true }).subscribe({
+    this.http.get<RevenueData[]>(`${environment.apiUrl}/admin/revenue`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (data) => {
         this.revenueData = data;
         this.totalRevenue = data.reduce((sum, item) => sum + item.total_revenue, 0);
@@ -72,7 +72,7 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   }
 
   loadExpenseData() {
-    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { withCredentials: true }).subscribe({
+    this.http.get<ExpenseData[]>(`${environment.apiUrl}/admin/expenses`, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (data) => {
         this.expenseData = data;
         this.totalExpenses = data.reduce((sum, item) => sum + item.amount, 0);

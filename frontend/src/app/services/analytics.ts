@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { AuthService } from './auth';
 
 export interface AnalyticsOverview {
   total_sessions: number;
@@ -45,7 +46,7 @@ export class AnalyticsService {
   private apiUrl = environment.apiUrl;
   private sessionId: string;
 
-  constructor(private http: HttpClient) {
+  constructor(private http: HttpClient, private authService: AuthService) {
     this.sessionId = this.getOrCreateSessionId();
     this.trackPageView();
   }
@@ -107,7 +108,7 @@ export class AnalyticsService {
 
     return this.http.get<AnalyticsOverview>(`${this.apiUrl}/admin/analytics/overview`, {
       params,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     });
   }
 
@@ -119,7 +120,7 @@ export class AnalyticsService {
 
     return this.http.get<PageViewData[]>(`${this.apiUrl}/admin/analytics/page-views`, {
       params,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     });
   }
 
@@ -132,7 +133,7 @@ export class AnalyticsService {
 
     return this.http.get<EventData[]>(`${this.apiUrl}/admin/analytics/events`, {
       params,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     });
   }
 
@@ -143,7 +144,7 @@ export class AnalyticsService {
 
     return this.http.get<SessionData[]>(`${this.apiUrl}/admin/analytics/sessions`, {
       params,
-      withCredentials: true
+      headers: this.authService.getAuthHeaders()
     });
   }
 }
