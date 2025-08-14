@@ -5,6 +5,7 @@ import { MenuService, MenuItem } from './menu.service';
 import { CartItem, CartService } from '../cart/cart.service';
 import { AddToCartModalComponent } from '../shared/add-to-cart-modal.component';
 import { ModalService } from '../shared/modal.service';
+import { environment } from '../../environments/environment';
 
 
 @Component({
@@ -56,12 +57,36 @@ export class MenuComponent implements OnInit {
 
   private loadMenuItems(): Promise<void> {
     return new Promise((resolve, reject) => {
+      console.log('Loading menu items from:', environment.apiUrl + '/menu');
       this.menuService.getMenuItems().subscribe({
         next: (data) => {
+          console.log('Menu items loaded successfully:', data);
           this.menuItems = data;
           resolve();
         },
-        error: (err) => reject(err)
+        error: (err) => {
+          console.error('Error loading menu items:', err);
+          console.error('API URL:', environment.apiUrl + '/menu');
+          console.error('Error details:', {
+            status: err.status,
+            statusText: err.statusText,
+            message: err.message,
+            error: err.error
+          });
+          
+          // Set a more descriptive error message based on the error type
+          if (err.status === 0) {
+            this.error = 'Cannot connect to server. Please check your internet connection.';
+          } else if (err.status >= 500) {
+            this.error = 'Server error. Please try again later.';
+          } else if (err.status === 404) {
+            this.error = 'Menu service not found.';
+          } else {
+            this.error = `Failed to load menu. Error: ${err.status} ${err.statusText}`;
+          }
+          
+          reject(err);
+        }
       });
     });
   }
