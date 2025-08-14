@@ -1,4 +1,4 @@
-const db = require('./db');
+const dbPromise = require('./db');
 
 // Helen's Kitchen authentic menu data
 const menuData = [
@@ -44,17 +44,19 @@ async function populateMenu() {
   console.log('🍽️ Populating Helen\'s Kitchen menu...');
   
   try {
+    const db = await dbPromise;
+    
     // Clear existing menu data
     console.log('Clearing existing menu data...');
     await new Promise((resolve, reject) => {
-      db.run('DELETE FROM menu_variants', (err) => {
+      db.run('DELETE FROM menu_variants', [], (err) => {
         if (err) reject(err);
         else resolve();
       });
     });
     
     await new Promise((resolve, reject) => {
-      db.run('DELETE FROM menu_items', (err) => {
+      db.run('DELETE FROM menu_items', [], (err) => {
         if (err) reject(err);
         else resolve();
       });
@@ -101,13 +103,13 @@ async function populateMenu() {
     
     // Verify the data
     console.log('\n📊 Verifying menu data...');
-    db.all('SELECT * FROM menu_items', (err, items) => {
+    db.all('SELECT * FROM menu_items', [], (err, items) => {
       if (err) {
         console.error('Error verifying menu items:', err);
       } else {
         console.log(`Found ${items.length} menu items in database`);
         
-        db.all('SELECT * FROM menu_variants', (err, variants) => {
+        db.all('SELECT * FROM menu_variants', [], (err, variants) => {
           if (err) {
             console.error('Error verifying variants:', err);
           } else {

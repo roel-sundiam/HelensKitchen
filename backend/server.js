@@ -1913,6 +1913,101 @@ app.delete("/api/admin/orders/all", requirePermission('orders.update'), (req, re
   });
 });
 
+// Menu Population Endpoint (for deployment setup)
+app.post("/api/admin/populate-menu", requirePermission('users.create'), async (req, res) => {
+  try {
+    console.log('🍽️ Populating menu via API endpoint...');
+    
+    // Import the menu data
+    const menuData = [
+      {
+        name: "Charlie Chan Chicken Pasta",
+        description: "Perfectly cooked pasta with chicken, mushrooms and peanuts, coated in a sticky, sweet and spicy sauce with special ingredients. Must try, you will surely love it!",
+        image_url: "images/food/pasta/pasta_1.jpg",
+        base_price: 199.00,
+        variants: [
+          { name: "700ml box", price: 199.00 },
+          { name: "1000ml box", price: 289.00 },
+          { name: "1400ml box", price: 379.00 }
+        ]
+      },
+      {
+        name: "Four Cheese Burger",
+        description: "Our signature burger featuring a blend of four premium cheeses, perfectly melted over a juicy patty. A cheese lover's dream!",
+        image_url: "images/food/burgers/burger_1.jpg",
+        base_price: 159.00,
+        variants: [
+          { name: "Single Patty", price: 159.00 },
+          { name: "Double Patty", price: 199.00 }
+        ]
+      },
+      {
+        name: "Spicy Bulgogi",
+        description: "Korean-inspired bulgogi beef with a spicy kick, topped with our signature three-cheese blend for the ultimate flavor experience.",
+        image_url: "images/food/bulgogi/bulgogi_1.jpg", 
+        base_price: 159.00,
+        variants: [
+          { name: "Single Patty", price: 159.00 },
+          { name: "Double Patty", price: 199.00 }
+        ]
+      }
+    ];
+    
+    // Clear existing menu data
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM menu_variants', [], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    await new Promise((resolve, reject) => {
+      db.run('DELETE FROM menu_items', [], (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+    
+    // Insert menu items and variants
+    for (const item of menuData) {
+      const menuItemId = await new Promise((resolve, reject) => {
+        db.run(
+          'INSERT INTO menu_items (name, description, image_url, base_price) VALUES (?, ?, ?, ?)',
+          [item.name, item.description, item.image_url, item.base_price],
+          function(err) {
+            if (err) reject(err);
+            else resolve(this.lastID);
+          }
+        );
+      });
+      
+      for (const variant of item.variants) {
+        await new Promise((resolve, reject) => {
+          db.run(
+            'INSERT INTO menu_variants (menu_item_id, name, price) VALUES (?, ?, ?)',
+            [menuItemId, variant.name, variant.price],
+            (err) => {
+              if (err) reject(err);
+              else resolve();
+            }
+          );
+        });
+      }
+    }
+    
+    console.log('✅ Menu populated successfully via API');
+    res.json({ 
+      message: "Menu populated successfully", 
+      items: menuData.length,
+      variants: menuData.reduce((total, item) => total + item.variants.length, 0)
+    });
+    
+  } catch (error) {
+    console.error('❌ Error populating menu via API:', error);
+    res.status(500).json({ error: "Failed to populate menu" });
+  }
+});
+
 // Apply analytics middleware to all routes (but not analytics endpoints themselves)
 app.use((req, res, next) => {
   // Don't track analytics API calls to avoid infinite loops
