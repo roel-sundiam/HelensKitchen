@@ -9,13 +9,13 @@
         <input 
           type="text" 
           formControlName="orderId" 
-          placeholder="Enter your order ID (numbers only)"
+          placeholder="Enter your order ID (24-character code)"
         />
         <div 
           *ngIf="trackingForm.get('orderId')?.invalid && trackingForm.get('orderId')?.touched" 
           class="error-message"
         >
-          Order ID must be a valid number.
+          Order ID must be a 24-character code (letters and numbers).
         </div>
       </label>
 

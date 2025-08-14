@@ -9,7 +9,7 @@ import { NotificationModalComponent, NotificationType } from '../shared/notifica
 import { environment } from '../../environments/environment';
 
 interface Order {
-  id: number;
+  id: string;
   customer_name: string;
   phone: string;
   address: string;
@@ -76,10 +76,12 @@ export class AdminOrdersComponent implements OnInit {
       next: (data) => {
         console.log('Orders loaded:', data);
         this.orders = data;
-        // Initialize payment status tracking for all orders
+        // Initialize status tracking for all orders
         this.originalPaymentStatuses = {};
+        this.originalStatuses = {};
         data.forEach(order => {
           this.originalPaymentStatuses[order.id] = order.payment_status;
+          this.originalStatuses[order.id] = order.status;
         });
         this.loading = false;
       },
@@ -106,13 +108,29 @@ export class AdminOrdersComponent implements OnInit {
   }
 
   updateStatus(order: Order, newStatus: string) {
-    // Prevent auto-triggering during data loading
-    if (newStatus === order.status) {
+    console.log('updateStatus called:', {
+      orderId: order.id,
+      currentStatus: order.status,
+      newStatus: newStatus,
+      originalTracked: this.originalStatuses[order.id]
+    });
+
+    // Store the original status before the first change attempt
+    if (!(order.id in this.originalStatuses)) {
+      this.originalStatuses[order.id] = order.status;
+    }
+    
+    const originalStatus = this.originalStatuses[order.id];
+    
+    // Prevent auto-triggering during data loading or if status hasn't changed
+    if (newStatus === originalStatus) {
+      console.log('No change needed, returning early');
       return;
     }
 
+    console.log('Proceeding with order status update');
+
     // Temporarily revert the dropdown to original value
-    const originalStatus = order.status;
     order.status = originalStatus;
 
     this.showConfirmation(
@@ -131,6 +149,8 @@ export class AdminOrdersComponent implements OnInit {
             next: (response) => {
               console.log('Order status update response:', response);
               order.status = newStatus;
+              // Update the tracked original status for future changes
+              this.originalStatuses[order.id] = newStatus;
               this.showNotification('success', 'Success', `Order status updated to "${newStatus}" successfully.`);
             },
             error: (err) => {
@@ -160,8 +180,9 @@ export class AdminOrdersComponent implements OnInit {
     );
   }
 
-  // Track original payment statuses before any changes
-  private originalPaymentStatuses: { [orderId: number]: string } = {};
+  // Track original statuses before any changes
+  private originalPaymentStatuses: { [orderId: string]: string } = {};
+  private originalStatuses: { [orderId: string]: string } = {};
 
   updatePaymentStatus(order: Order, newPaymentStatus: string) {
     console.log('updatePaymentStatus called:', {

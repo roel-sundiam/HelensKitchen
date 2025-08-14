@@ -6,7 +6,7 @@ import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 
 interface Order {
-  id: number;
+  id: string;
   customer_name: string;
   phone: string;
   address: string;
@@ -34,7 +34,7 @@ export class TrackOrderComponent {
 
   constructor(private fb: FormBuilder, private http: HttpClient, private router: Router) {
     this.trackingForm = this.fb.group({
-      orderId: ['', [Validators.required, Validators.pattern(/^\d+$/)]],
+      orderId: ['', [Validators.required, Validators.pattern(/^[a-fA-F0-9]{24}$/)]],
       phone: ['', [Validators.required, Validators.pattern(/^[0-9]{10,15}$/)]]
     });
   }
