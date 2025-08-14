@@ -379,15 +379,31 @@ async function initServer() {
           payment_status: order.payment_status,
           requested_delivery: order.requested_delivery,
           created_at: order.createdAt,
-          items: order.items.map(item => ({
-            menu_item_id: item.menu_item_id._id,
-            name: item.menu_item_id.name,
-            description: item.menu_item_id.description,
-            image_url: item.menu_item_id.image_url,
-            variant_name: item.variant_name,
-            quantity: item.quantity,
-            price: item.price
-          }))
+          items: order.items.map(item => {
+            // Handle cases where menu_item_id might not be populated (legacy orders)
+            if (item.menu_item_id && item.menu_item_id._id) {
+              return {
+                menu_item_id: item.menu_item_id._id,
+                name: item.menu_item_id.name,
+                description: item.menu_item_id.description,
+                image_url: item.menu_item_id.image_url,
+                variant_name: item.variant_name,
+                quantity: item.quantity,
+                price: item.price
+              };
+            } else {
+              // Fallback for legacy orders without menu_item_id populated
+              return {
+                menu_item_id: null,
+                name: item.variant_name || 'Menu Item',
+                description: 'Item details not available',
+                image_url: '/assets/images/placeholder-food.jpg',
+                variant_name: item.variant_name,
+                quantity: item.quantity,
+                price: item.price
+              };
+            }
+          })
         };
         
         console.log(`Order found and returned for ${orderId}`);
