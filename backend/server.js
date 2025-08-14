@@ -365,6 +365,54 @@ async function initServer() {
           console.log(`No order found for ID ${orderId} and phone ${phone}`);
           return res.status(404).json({ error: "Order not found" });
         }
+
+        // For legacy orders, try to lookup menu items by variant name
+        const itemsWithDetails = await Promise.all(order.items.map(async (item) => {
+          // Handle cases where menu_item_id might not be populated (legacy orders)
+          if (item.menu_item_id && item.menu_item_id._id) {
+            return {
+              menu_item_id: item.menu_item_id._id,
+              name: item.menu_item_id.name,
+              description: item.menu_item_id.description,
+              image_url: item.menu_item_id.image_url,
+              variant_name: item.variant_name,
+              quantity: item.quantity,
+              price: item.price
+            };
+          } else {
+            // Fallback for legacy orders - try to find the menu item by variant name
+            try {
+              const variant = await MenuVariant.findOne({ 
+                name: item.variant_name 
+              }).populate('menu_item_id');
+              
+              if (variant && variant.menu_item_id) {
+                return {
+                  menu_item_id: variant.menu_item_id._id,
+                  name: variant.menu_item_id.name,
+                  description: variant.menu_item_id.description,
+                  image_url: variant.menu_item_id.image_url,
+                  variant_name: item.variant_name,
+                  quantity: item.quantity,
+                  price: item.price
+                };
+              }
+            } catch (error) {
+              console.error('Error looking up variant:', error);
+            }
+            
+            // Final fallback if variant lookup fails
+            return {
+              menu_item_id: null,
+              name: item.variant_name || 'Menu Item',
+              description: 'Legacy order item',
+              image_url: 'https://via.placeholder.com/150x150/2D2D2D/FFFFFF?text=Food+Item',
+              variant_name: item.variant_name,
+              quantity: item.quantity,
+              price: item.price
+            };
+          }
+        }));
         
         // Format response to match frontend expectations
         const formattedOrder = {
@@ -379,31 +427,7 @@ async function initServer() {
           payment_status: order.payment_status,
           requested_delivery: order.requested_delivery,
           created_at: order.createdAt,
-          items: order.items.map(item => {
-            // Handle cases where menu_item_id might not be populated (legacy orders)
-            if (item.menu_item_id && item.menu_item_id._id) {
-              return {
-                menu_item_id: item.menu_item_id._id,
-                name: item.menu_item_id.name,
-                description: item.menu_item_id.description,
-                image_url: item.menu_item_id.image_url,
-                variant_name: item.variant_name,
-                quantity: item.quantity,
-                price: item.price
-              };
-            } else {
-              // Fallback for legacy orders without menu_item_id populated
-              return {
-                menu_item_id: null,
-                name: item.variant_name || 'Menu Item',
-                description: 'Item details not available',
-                image_url: '/assets/images/placeholder-food.jpg',
-                variant_name: item.variant_name,
-                quantity: item.quantity,
-                price: item.price
-              };
-            }
-          })
+          items: itemsWithDetails
         };
         
         console.log(`Order found and returned for ${orderId}`);
