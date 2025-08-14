@@ -113,6 +113,17 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.table-scroll-hint {
+  display: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: #EF4444;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-family: "Poppins", sans-serif;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -126,6 +137,18 @@ td {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-family: "Poppins", sans-serif;
 }
+
+/* Optimize column widths */
+th:nth-child(1), td:nth-child(1) { max-width: 80px; overflow: hidden; text-overflow: ellipsis; } /* Order ID */
+th:nth-child(2), td:nth-child(2) { max-width: 120px; word-wrap: break-word; } /* Customer */
+th:nth-child(3), td:nth-child(3) { max-width: 100px; word-wrap: break-word; } /* Contact */
+th:nth-child(4), td:nth-child(4) { max-width: 150px; word-wrap: break-word; } /* Address */
+th:nth-child(5), td:nth-child(5) { max-width: 100px; } /* Payment Method */
+th:nth-child(6), td:nth-child(6) { max-width: 80px; text-align: right; } /* Total */
+th:nth-child(7), td:nth-child(7) { max-width: 180px; } /* Delivery Date */
+th:nth-child(8), td:nth-child(8) { max-width: 120px; } /* Payment Status */
+th:nth-child(9), td:nth-child(9) { max-width: 120px; } /* Order Status */
+th:nth-child(10), td:nth-child(10) { min-width: 100px; white-space: nowrap; } /* Actions */
 
 th {
   background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
@@ -181,6 +204,81 @@ td select option {
   background: #2D2D2D;
   color: #FFFFFF;
   padding: 0.5rem;
+}
+
+/* Delivery Date Input */
+.delivery-date-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.8rem;
+  transition: all 0.3s ease;
+  width: 100%;
+  min-width: 160px;
+}
+
+.delivery-date-input:focus {
+  outline: none;
+  border-color: #EF4444;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.delivery-date-input:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Calendar icon color fix for webkit browsers */
+.delivery-date-input::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* View Details Button */
+.view-details-btn {
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+  min-width: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+.view-details-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(59, 130, 246, 0.4);
+}
+
+.view-details-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+.view-details-btn:disabled {
+  background: #6B7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.view-details-btn:focus-visible {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
 }
 
 .loading {
@@ -273,8 +371,12 @@ td select option {
     -webkit-overflow-scrolling: touch;
   }
 
+  .table-scroll-hint {
+    display: block;
+  }
+
   table {
-    min-width: 800px;
+    min-width: 1000px;
   }
 
   th, td {
@@ -291,6 +393,18 @@ td select option {
     font-size: 0.7rem;
     padding: 0.4rem 0.5rem;
     min-width: 100px;
+  }
+
+  .delivery-date-input {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.5rem;
+    min-width: 140px;
+  }
+
+  .view-details-btn {
+    font-size: 0.7rem;
+    padding: 0.4rem 0.6rem;
+    min-width: 70px;
   }
 }
 
@@ -329,7 +443,7 @@ td select option {
   }
 
   table {
-    min-width: 700px;
+    min-width: 900px;
   }
 
   th, td {
@@ -341,6 +455,18 @@ td select option {
     font-size: 0.65rem;
     padding: 0.3rem 0.4rem;
     min-width: 90px;
+  }
+
+  .delivery-date-input {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.4rem;
+    min-width: 130px;
+  }
+
+  .view-details-btn {
+    font-size: 0.65rem;
+    padding: 0.3rem 0.5rem;
+    min-width: 60px;
   }
 }
 
@@ -355,7 +481,7 @@ td select option {
   }
 
   table {
-    min-width: 600px;
+    min-width: 800px;
   }
 
   th, td {
@@ -371,6 +497,18 @@ td select option {
     font-size: 0.6rem;
     padding: 0.25rem 0.3rem;
     min-width: 80px;
+  }
+
+  .delivery-date-input {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.3rem;
+    min-width: 120px;
+  }
+
+  .view-details-btn {
+    font-size: 0.6rem;
+    padding: 0.25rem 0.4rem;
+    min-width: 50px;
   }
 }
 

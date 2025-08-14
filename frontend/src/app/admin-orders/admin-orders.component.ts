@@ -6,6 +6,7 @@ import { RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth';
 import { ConfirmationModalComponent } from '../shared/confirmation-modal.component';
 import { NotificationModalComponent, NotificationType } from '../shared/notification-modal.component';
+import { OrderDetailsModalComponent } from '../shared/order-details-modal.component';
 import { environment } from '../../environments/environment';
 
 interface Order {
@@ -21,14 +22,73 @@ interface Order {
   created_at: string;
 }
 
+interface OrderItem {
+  menu_item_id: string;
+  name: string;
+  description: string;
+  image_url: string;
+  variant_name: string;
+  quantity: number;
+  price: number;
+}
+
+interface OrderDetails {
+  id: string;
+  customer_name: string;
+  phone: string;
+  address: string;
+  payment_method: string;
+  total_price: number;
+  status: string;
+  payment_status: string;
+  requested_delivery: string;
+  created_at: string;
+  items: OrderItem[];
+}
+
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [CommonModule, HttpClientModule, FormsModule, RouterModule, ConfirmationModalComponent, NotificationModalComponent],
+  imports: [CommonModule, HttpClientModule, FormsModule, RouterModule, ConfirmationModalComponent, NotificationModalComponent, OrderDetailsModalComponent],
   templateUrl: './admin-orders.component.html',
   styleUrls: ['./admin-orders.component.css'],
 })
 export class AdminOrdersComponent implements OnInit {
+  
+  // Helper method to get datetime-local value
+  getDateTimeValue(order: Order): string {
+    if (!order.requested_delivery) return '';
+    try {
+      // Simple ISO string slice - no complex formatting
+      return new Date(order.requested_delivery).toISOString().slice(0, 16);
+    } catch {
+      return '';
+    }
+  }
+
+  // Event handler for delivery date changes
+  onDeliveryDateChange(order: Order, event: Event): void {
+    const target = event.target as HTMLInputElement;
+    if (target && target.value) {
+      try {
+        // Parse the date and convert to ISO string
+        const newDate = new Date(target.value);
+        if (!isNaN(newDate.getTime())) {
+          this.updateDeliveryDate(order, newDate.toISOString());
+        } else {
+          // Invalid date format
+          this.showNotification('error', 'Invalid Date', 'Please enter a valid date in MM/DD/YYYY HH:MM format');
+          // Revert to original value
+          target.value = new Date(order.requested_delivery).toLocaleDateString() + ' ' + 
+                        new Date(order.requested_delivery).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        }
+      } catch (error) {
+        console.error('Date parsing error:', error);
+        this.showNotification('error', 'Invalid Date', 'Please enter a valid date format');
+      }
+    }
+  }
+
   orders: Order[] = [];
   filterStatus = '';
   filterPaymentStatus = '';
@@ -52,12 +112,18 @@ export class AdminOrdersComponent implements OnInit {
   notificationMessage = '';
   notificationDetails: string | null = null;
 
+  // Order details modal states
+  showOrderDetailsModal = false;
+  selectedOrderDetails: OrderDetails | null = null;
+  loadingOrderDetails = false;
+
   constructor(
     private http: HttpClient,
     public authService: AuthService
   ) {}
 
   ngOnInit() {
+    // Load orders with automatic filtering for delivered/cancelled on initial load
     this.loadOrders();
   }
 
@@ -75,13 +141,23 @@ export class AdminOrdersComponent implements OnInit {
     this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, headers }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
-        this.orders = data;
+        // Filter out delivered and cancelled orders unless specific filters are applied
+        let filteredData = data;
+        if (!this.filterStatus && !this.filterPaymentStatus) {
+          // On initial load (no filters), exclude Delivered and Cancelled orders
+          filteredData = data.filter(order => 
+            order.status !== 'Delivered' && order.status !== 'Cancelled'
+          );
+          console.log('Filtered out delivered/cancelled orders:', filteredData);
+        }
+        this.orders = filteredData;
         // Initialize status tracking for all orders
         this.originalPaymentStatuses = {};
         this.originalStatuses = {};
-        data.forEach(order => {
+        filteredData.forEach(order => {
           this.originalPaymentStatuses[order.id] = order.payment_status;
           this.originalStatuses[order.id] = order.status;
+          this.originalDeliveryDates[order.id] = order.requested_delivery;
         });
         this.loading = false;
       },
@@ -152,6 +228,8 @@ export class AdminOrdersComponent implements OnInit {
               // Update the tracked original status for future changes
               this.originalStatuses[order.id] = newStatus;
               this.showNotification('success', 'Success', `Order status updated to "${newStatus}" successfully.`);
+              // Reload orders to apply filtering (hide Delivered/Cancelled orders)
+              this.loadOrders();
             },
             error: (err) => {
               console.error('Order status update error:', err);
@@ -183,6 +261,7 @@ export class AdminOrdersComponent implements OnInit {
   // Track original statuses before any changes
   private originalPaymentStatuses: { [orderId: string]: string } = {};
   private originalStatuses: { [orderId: string]: string } = {};
+  private originalDeliveryDates: { [orderId: string]: string } = {};
 
   updatePaymentStatus(order: Order, newPaymentStatus: string) {
     console.log('updatePaymentStatus called:', {
@@ -259,6 +338,94 @@ export class AdminOrdersComponent implements OnInit {
     );
   }
 
+  updateDeliveryDate(order: Order, newDeliveryDate: string) {
+    console.log('updateDeliveryDate called:', {
+      orderId: order.id,
+      currentDeliveryDate: order.requested_delivery,
+      newDeliveryDate: newDeliveryDate,
+      originalTracked: this.originalDeliveryDates[order.id]
+    });
+
+    // Store the original delivery date before the first change attempt
+    if (!(order.id in this.originalDeliveryDates)) {
+      this.originalDeliveryDates[order.id] = order.requested_delivery;
+    }
+    
+    const originalDeliveryDate = this.originalDeliveryDates[order.id];
+    
+    // Prevent auto-triggering during data loading or if date hasn't changed
+    if (newDeliveryDate === originalDeliveryDate) {
+      console.log('No change needed, returning early');
+      return;
+    }
+
+    // Validate 24-hour advance notice
+    const newDate = new Date(newDeliveryDate);
+    const now = new Date();
+    const hoursDifference = (newDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+    if (hoursDifference < 24) {
+      // Revert to original date
+      order.requested_delivery = originalDeliveryDate;
+      this.showNotification('error', 'Invalid Date', 'Delivery date must be at least 24 hours from now.');
+      return;
+    }
+
+    console.log('Proceeding with delivery date update');
+
+    // Temporarily revert the input to original value
+    order.requested_delivery = originalDeliveryDate;
+
+    const formattedDate = new Date(newDeliveryDate).toLocaleDateString();
+    this.showConfirmation(
+      'Update Delivery Date',
+      `Change delivery date for order #${order.id} to ${formattedDate}?`,
+      () => {
+        console.log('Updating delivery date:', {
+          orderId: order.id,
+          currentDeliveryDate: originalDeliveryDate,
+          newDeliveryDate: newDeliveryDate
+        });
+        
+        this.http
+          .put(`${environment.apiUrl}/admin/orders/${order.id}/delivery-date`, { 
+            requested_delivery: new Date(newDeliveryDate).toISOString() 
+          }, { headers: this.authService.getAuthHeaders() })
+          .subscribe({
+            next: (response: any) => {
+              console.log('Delivery date update response:', response);
+              order.requested_delivery = response.requested_delivery || newDeliveryDate;
+              // Update the tracked original date for future changes
+              this.originalDeliveryDates[order.id] = order.requested_delivery;
+              this.showNotification('success', 'Success', `Delivery date updated to ${formattedDate} successfully.`);
+            },
+            error: (err) => {
+              console.error('Delivery date update error:', err);
+              // Revert to original date on error
+              order.requested_delivery = originalDeliveryDate;
+              
+              let errorMessage = 'Failed to update delivery date.';
+              let errorDetails = null;
+              
+              if (err.error && err.error.error) {
+                errorMessage = err.error.error;
+              }
+              
+              if (err.status) {
+                errorDetails = `HTTP ${err.status}: ${err.statusText}\n${JSON.stringify(err.error, null, 2)}`;
+              }
+              
+              this.showNotification('error', 'Update Failed', errorMessage, errorDetails);
+            },
+          });
+      },
+      () => {
+        // On cancel, revert to original date
+        order.requested_delivery = originalDeliveryDate;
+      }
+    );
+  }
+
   getOrdersByStatus(status: string): Order[] {
     return this.orders.filter(order => order.status === status);
   }
@@ -299,5 +466,45 @@ export class AdminOrdersComponent implements OnInit {
 
   onNotificationModalClosed() {
     this.showNotificationModal = false;
+  }
+
+  viewOrderDetails(order: Order) {
+    this.loadingOrderDetails = true;
+    this.showOrderDetailsModal = true;
+    this.selectedOrderDetails = null;
+
+    const headers = this.authService.getAuthHeaders();
+    console.log('Making API call to:', `${environment.apiUrl}/admin/orders/${order.id}`);
+    console.log('With headers:', headers);
+    this.http.get<OrderDetails>(`${environment.apiUrl}/admin/orders/${order.id}`, { headers }).subscribe({
+      next: (orderDetails) => {
+        this.selectedOrderDetails = orderDetails;
+        this.loadingOrderDetails = false;
+      },
+      error: (err) => {
+        console.error('Failed to load order details:', err);
+        this.loadingOrderDetails = false;
+        
+        let errorMessage = 'Failed to load order details.';
+        let errorDetails = null;
+        
+        if (err.error && err.error.error) {
+          errorMessage = err.error.error;
+        }
+        
+        if (err.status) {
+          errorDetails = `HTTP ${err.status}: ${err.statusText}\n${JSON.stringify(err.error, null, 2)}`;
+        }
+        
+        this.showNotification('error', 'Loading Error', errorMessage, errorDetails);
+        this.showOrderDetailsModal = false;
+      }
+    });
+  }
+
+  onOrderDetailsModalClosed() {
+    this.showOrderDetailsModal = false;
+    this.selectedOrderDetails = null;
+    this.loadingOrderDetails = false;
   }
 }

@@ -309,6 +309,141 @@ async function initServer() {
       }
     });
 
+    // PUT /api/admin/orders/:id/delivery-date
+    app.put("/api/admin/orders/:id/delivery-date", requirePermission('orders.update'), async (req, res) => {
+      const { id } = req.params;
+      const { requested_delivery } = req.body;
+      
+      if (!requested_delivery) {
+        return res.status(400).json({ error: "Delivery date is required" });
+      }
+
+      try {
+        const newDeliveryDate = new Date(requested_delivery);
+        const now = new Date();
+        const hoursDifference = (newDeliveryDate - now) / (1000 * 60 * 60);
+
+        // Validate 24-hour advance notice rule
+        if (hoursDifference < 24) {
+          return res.status(400).json({ 
+            error: "Delivery date must be at least 24 hours from now" 
+          });
+        }
+
+        console.log(`Updating order ${id} delivery date to ${requested_delivery}`);
+        
+        const updatedOrder = await Order.findByIdAndUpdate(
+          id, 
+          { requested_delivery: newDeliveryDate }, 
+          { new: true }
+        );
+        
+        if (!updatedOrder) {
+          console.log(`No order found for ID ${id}`);
+          return res.status(404).json({ error: "Order not found" });
+        }
+        
+        console.log(`Delivery date updated successfully for order ${id}`);
+        res.json({ 
+          message: "Delivery date updated",
+          requested_delivery: updatedOrder.requested_delivery
+        });
+      } catch (error) {
+        console.error('Database error updating delivery date:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // GET /api/admin/orders/:id - Get detailed order information for admin
+    app.get("/api/admin/orders/:id", requirePermission('orders.view'), async (req, res) => {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      try {
+        console.log(`Fetching detailed order ${id} for admin`);
+        
+        const order = await Order.findById(id).populate('items.menu_item_id');
+        
+        if (!order) {
+          console.log(`No order found for ID ${id}`);
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Process order items with menu details
+        const itemsWithDetails = await Promise.all(order.items.map(async (item) => {
+          // Handle cases where menu_item_id might not be populated (legacy orders)
+          if (item.menu_item_id && item.menu_item_id._id) {
+            return {
+              menu_item_id: item.menu_item_id._id,
+              name: item.menu_item_id.name,
+              description: item.menu_item_id.description,
+              image_url: item.menu_item_id.image_url,
+              variant_name: item.variant_name,
+              quantity: item.quantity,
+              price: item.price
+            };
+          } else {
+            // Fallback for legacy orders - try to find the menu item by variant name
+            try {
+              const variant = await MenuVariant.findOne({ 
+                name: item.variant_name 
+              }).populate('menu_item_id');
+              
+              if (variant && variant.menu_item_id) {
+                return {
+                  menu_item_id: variant.menu_item_id._id,
+                  name: variant.menu_item_id.name,
+                  description: variant.menu_item_id.description,
+                  image_url: variant.menu_item_id.image_url,
+                  variant_name: item.variant_name,
+                  quantity: item.quantity,
+                  price: item.price
+                };
+              }
+            } catch (error) {
+              console.error('Error looking up variant:', error);
+            }
+            
+            // Final fallback if variant lookup fails
+            return {
+              menu_item_id: null,
+              name: item.variant_name || 'Menu Item',
+              description: 'Legacy order item',
+              image_url: 'https://via.placeholder.com/150x150/2D2D2D/FFFFFF?text=Food+Item',
+              variant_name: item.variant_name,
+              quantity: item.quantity,
+              price: item.price
+            };
+          }
+        }));
+        
+        // Format response to match frontend expectations
+        const formattedOrder = {
+          id: order._id,
+          customer_name: order.customer_name,
+          phone: order.phone,
+          address: order.address,
+          plus_code: order.plus_code,
+          payment_method: order.payment_method,
+          total_price: order.total_price,
+          status: order.status,
+          payment_status: order.payment_status,
+          requested_delivery: order.requested_delivery,
+          created_at: order.createdAt,
+          items: itemsWithDetails
+        };
+        
+        console.log(`Order details found and returned for admin: ${id}`);
+        res.json(formattedOrder);
+      } catch (error) {
+        console.error('Database error fetching order details:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
     // POST /api/orders - Submit new order
     app.post("/api/orders", async (req, res) => {
       const { customer_name, phone, address, plus_code, payment_method, requested_delivery, items, total_price } = req.body;

@@ -31,6 +31,7 @@
   </div>
 
   <div class="table-container">
+    <div class="table-scroll-hint">📱 Swipe left to see all columns</div>
     <table>
       <thead>
         <tr>
@@ -43,6 +44,7 @@
           <th>Delivery Date</th>
           <th>Payment Status</th>
           <th>Order Status</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -52,8 +54,17 @@
           <td>{{ order.phone }}</td>
           <td>{{ order.address }}</td>
           <td>{{ order.payment_method }}</td>
-          <td>{{ order.total_price | number : "1.2-2" }}</td>
-          <td>{{ order.requested_delivery | date : "short" }}</td>
+          <td>{{ order.total_price }}</td>
+          <td>
+            <input
+              type="text"
+              [value]="order.requested_delivery | date : 'short'"
+              (change)="onDeliveryDateChange(order, $event)"
+              class="delivery-date-input"
+              title="Edit delivery date (MM/DD/YYYY HH:MM format)"
+              placeholder="MM/DD/YYYY HH:MM"
+            />
+          </td>
           <td>
             <select
               [(ngModel)]="order.payment_status"
@@ -73,6 +84,18 @@
                 {{ s }}
               </option>
             </select>
+          </td>
+          <td>
+            <button 
+              class="view-details-btn"
+              (click)="viewOrderDetails(order)"
+              [disabled]="loadingOrderDetails"
+              type="button"
+              title="View order details"
+            >
+              <span *ngIf="!loadingOrderDetails">👁️ View</span>
+              <span *ngIf="loadingOrderDetails">⏳</span>
+            </button>
           </td>
         </tr>
       </tbody>
@@ -107,3 +130,10 @@
   [autoCloseDelay]="3000"
   (closeModal)="onNotificationModalClosed()">
 </app-notification-modal>
+
+<!-- Order Details Modal -->
+<app-order-details-modal
+  [isVisible]="showOrderDetailsModal"
+  [orderDetails]="selectedOrderDetails"
+  (closeModal)="onOrderDetailsModalClosed()">
+</app-order-details-modal>
