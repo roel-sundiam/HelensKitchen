@@ -1,8 +1,8 @@
 // MongoDB Models for Helen's Kitchen
 const mongoose = require('mongoose');
 
-// Fix the connection string (remove the @? part which seems incorrect)
-const MONGODB_URI = "mongodb+srv://admin:Wowbot0411!1@mydb.zxr9i5k.mongodb.net/HelensKitchen?retryWrites=true&w=majority&appName=MyDB";
+// Use environment variable for production, fallback to local for development
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:Wowbot0411!1@mydb.zxr9i5k.mongodb.net/HelensKitchen?retryWrites=true&w=majority&appName=MyDB";
 
 // Connect to MongoDB
 async function connectToMongoDB() {
