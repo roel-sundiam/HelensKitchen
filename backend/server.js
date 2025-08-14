@@ -359,8 +359,14 @@ app.get("/api/admin/orders", requirePermission('orders.view'), (req, res) => {
 
 // PUT /api/admin/orders/:id/status
 app.put("/api/admin/orders/:id/status", requirePermission('orders.update'), (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
   const { status } = req.body;
+  
+  // Validate order ID
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "Invalid order ID" });
+  }
+  
   if (!status) return res.status(400).json({ error: "Status is required" });
 
   const validStatuses = ["New", "Processing", "Delivered", "Cancelled"];
@@ -368,23 +374,33 @@ app.put("/api/admin/orders/:id/status", requirePermission('orders.update'), (req
     return res.status(400).json({ error: "Invalid status value" });
   }
 
+  console.log(`Updating order ${id} status to ${status}`);
+
   const sql = "UPDATE orders SET status = ? WHERE id = ?";
   db.run(sql, [status, id], function (err) {
     if (err) {
-      console.error(err);
+      console.error('Database error updating order status:', err);
       return res.status(500).json({ error: "Database error" });
     }
     if (this.changes === 0) {
+      console.log(`No rows affected for order ID ${id} - order not found`);
       return res.status(404).json({ error: "Order not found" });
     }
+    console.log(`Order status updated successfully for order ${id}`);
     res.json({ message: "Order status updated" });
   });
 });
 
 // PUT /api/admin/orders/:id/payment-status
 app.put("/api/admin/orders/:id/payment-status", requirePermission('orders.update'), (req, res) => {
-  const id = req.params.id;
+  const id = parseInt(req.params.id);
   const { payment_status } = req.body;
+  
+  // Validate order ID
+  if (isNaN(id)) {
+    return res.status(400).json({ error: "Invalid order ID" });
+  }
+  
   if (!payment_status)
     return res.status(400).json({ error: "Payment status is required" });
 
@@ -393,15 +409,19 @@ app.put("/api/admin/orders/:id/payment-status", requirePermission('orders.update
     return res.status(400).json({ error: "Invalid payment status value" });
   }
 
+  console.log(`Updating order ${id} payment status to ${payment_status}`);
+
   const sql = "UPDATE orders SET payment_status = ? WHERE id = ?";
   db.run(sql, [payment_status, id], function (err) {
     if (err) {
-      console.error(err);
+      console.error('Database error updating payment status:', err);
       return res.status(500).json({ error: "Database error" });
     }
     if (this.changes === 0) {
+      console.log(`No rows affected for order ID ${id} - order not found`);
       return res.status(404).json({ error: "Order not found" });
     }
+    console.log(`Payment status updated successfully for order ${id}`);
     res.json({ message: "Payment status updated" });
   });
 });
