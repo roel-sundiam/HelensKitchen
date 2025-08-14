@@ -1,8 +1,8 @@
 // MongoDB Models for Helen's Kitchen
 const mongoose = require('mongoose');
 
-// Use environment variable for production, fallback to local for development
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:Wowbot0411!1@mydb.zxr9i5k.mongodb.net/HelensKitchen?retryWrites=true&w=majority&appName=MyDB";
+// Use environment variable for MongoDB connection
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Connect to MongoDB
 async function connectToMongoDB() {
