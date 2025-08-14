@@ -166,13 +166,6 @@
     </div>
   </label>
 
-      <!-- Debug information -->
-      <div style="background: rgba(255,255,255,0.1); padding: 1rem; margin: 1rem 0; border-radius: 8px;" *ngIf="true">
-        <p><strong>Debug Info:</strong></p>
-        <p>Cart Items: {{ cartItems.length }}</p>
-        <p>Form Valid: {{ checkoutForm.valid }}</p>
-        <p>Form Errors: {{ getFormErrors() }}</p>
-      </div>
 
       <button type="submit" [disabled]="cartItems.length === 0 || checkoutForm.invalid">
         Submit Order

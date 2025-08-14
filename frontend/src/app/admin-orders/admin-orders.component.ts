@@ -76,6 +76,11 @@ export class AdminOrdersComponent implements OnInit {
       next: (data) => {
         console.log('Orders loaded:', data);
         this.orders = data;
+        // Initialize payment status tracking for all orders
+        this.originalPaymentStatuses = {};
+        data.forEach(order => {
+          this.originalPaymentStatuses[order.id] = order.payment_status;
+        });
         this.loading = false;
       },
       error: (err) => {
@@ -155,14 +160,34 @@ export class AdminOrdersComponent implements OnInit {
     );
   }
 
+  // Track original payment statuses before any changes
+  private originalPaymentStatuses: { [orderId: number]: string } = {};
+
   updatePaymentStatus(order: Order, newPaymentStatus: string) {
-    // Store the original status before any changes
-    const originalPaymentStatus = order.payment_status;
+    console.log('updatePaymentStatus called:', {
+      orderId: order.id,
+      currentPaymentStatus: order.payment_status,
+      newPaymentStatus: newPaymentStatus,
+      originalTracked: this.originalPaymentStatuses[order.id]
+    });
+
+    // Store the original status before the first change attempt
+    if (!(order.id in this.originalPaymentStatuses)) {
+      this.originalPaymentStatuses[order.id] = order.payment_status;
+    }
+    
+    const originalPaymentStatus = this.originalPaymentStatuses[order.id];
     
     // Prevent auto-triggering during data loading or if status hasn't changed
     if (newPaymentStatus === originalPaymentStatus) {
+      console.log('No change needed, returning early');
       return;
     }
+
+    console.log('Proceeding with payment status update');
+
+    // Temporarily revert the dropdown to original value
+    order.payment_status = originalPaymentStatus;
 
     this.showConfirmation(
       'Update Payment Status',
@@ -182,6 +207,8 @@ export class AdminOrdersComponent implements OnInit {
             next: (response) => {
               console.log('Payment status update response:', response);
               order.payment_status = newPaymentStatus;
+              // Update the tracked original status for future changes
+              this.originalPaymentStatuses[order.id] = newPaymentStatus;
               this.showNotification('success', 'Success', `Payment status updated to "${newPaymentStatus}" successfully.`);
             },
             error: (err) => {
