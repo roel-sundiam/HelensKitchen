@@ -92,6 +92,30 @@
         </div>
       </div>
 
+      <!-- Order Items Section -->
+      <div class="order-items-section" *ngIf="order.items && order.items.length > 0">
+        <h3>🍽️ Your Order</h3>
+        <div class="order-items-list">
+          <div class="order-item" *ngFor="let item of order.items">
+            <div class="item-image">
+              <img [src]="item.image_url" [alt]="item.name" />
+            </div>
+            <div class="item-details">
+              <h4>{{ item.name }}</h4>
+              <p class="item-description">{{ item.description }}</p>
+              <div class="item-variant" *ngIf="item.variant_name">
+                <span class="variant-label">Size/Type:</span>
+                <span class="variant-value">{{ item.variant_name }}</span>
+              </div>
+              <div class="item-quantity-price">
+                <span class="quantity">Qty: {{ item.quantity }}</span>
+                <span class="price">₱{{ item.price.toFixed(2) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="delivery-info">
         <h3>📍 Delivery Details</h3>
         <div class="delivery-details">

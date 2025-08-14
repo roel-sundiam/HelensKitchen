@@ -359,7 +359,7 @@ async function initServer() {
         const order = await Order.findOne({ 
           _id: orderId, 
           phone: phone 
-        });
+        }).populate('items.menu_item_id');
         
         if (!order) {
           console.log(`No order found for ID ${orderId} and phone ${phone}`);
@@ -378,7 +378,16 @@ async function initServer() {
           status: order.status,
           payment_status: order.payment_status,
           requested_delivery: order.requested_delivery,
-          created_at: order.createdAt
+          created_at: order.createdAt,
+          items: order.items.map(item => ({
+            menu_item_id: item.menu_item_id._id,
+            name: item.menu_item_id.name,
+            description: item.menu_item_id.description,
+            image_url: item.menu_item_id.image_url,
+            variant_name: item.variant_name,
+            quantity: item.quantity,
+            price: item.price
+          }))
         };
         
         console.log(`Order found and returned for ${orderId}`);

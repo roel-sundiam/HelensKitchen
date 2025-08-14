@@ -5,6 +5,16 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { environment } from '../../environments/environment';
 
+interface OrderItem {
+  menu_item_id: string;
+  name: string;
+  description: string;
+  image_url: string;
+  variant_name: string;
+  quantity: number;
+  price: number;
+}
+
 interface Order {
   id: string;
   customer_name: string;
@@ -16,6 +26,7 @@ interface Order {
   payment_status: string;
   requested_delivery: string;
   created_at: string;
+  items: OrderItem[];
 }
 
 @Component({
