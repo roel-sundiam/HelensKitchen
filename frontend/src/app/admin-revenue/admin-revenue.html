@@ -51,28 +51,53 @@
   <div class="data-section revenue-details">
     <div class="section-header">
       <h2>📋 Revenue Details</h2>
+      <p class="section-subtitle">Recent confirmed orders contributing to revenue</p>
     </div>
     <div class="table-wrapper">
-      <div *ngIf="revenueData.length === 0" class="no-data">
+      <div *ngIf="detailedRevenueData.length === 0" class="no-data">
         <div class="no-data-icon">📊</div>
         <p>No revenue data available</p>
         <span class="no-data-subtitle">Revenue data will appear here once orders are confirmed</span>
       </div>
-      <table *ngIf="revenueData.length > 0">
+      <table *ngIf="detailedRevenueData.length > 0" class="enhanced-revenue-table">
         <thead>
           <tr>
+            <th>Order ID</th>
+            <th>Customer</th>
+            <th>Contact</th>
             <th>Date</th>
+            <th>Type</th>
             <th>Payment Method</th>
-            <th>Revenue</th>
+            <th>Amount</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let item of revenueData">
-            <td>{{ item.date }}</td>
-            <td>
+          <tr *ngFor="let item of detailedRevenueData">
+            <td class="order-id-cell">
+              <span class="order-id">#{{ item.order_id.slice(-6) }}</span>
+            </td>
+            <td class="customer-cell">
+              <div class="customer-info">
+                <span class="customer-name">{{ item.customer_name }}</span>
+              </div>
+            </td>
+            <td class="contact-cell">
+              <span class="phone-number">{{ item.phone }}</span>
+            </td>
+            <td class="date-cell">
+              <span class="order-date">{{ item.date }}</span>
+            </td>
+            <td class="type-cell">
+              <span class="delivery-type" [class.pickup]="item.delivery_option === 'pickup'">
+                {{ item.delivery_option === 'pickup' ? '🏪 Pickup' : '🚚 Delivery' }}
+              </span>
+            </td>
+            <td class="payment-cell">
               <span class="payment-method">{{ item.payment_method }}</span>
             </td>
-            <td class="amount-cell">₱{{ item.total_revenue.toLocaleString() }}</td>
+            <td class="amount-cell">
+              <span class="revenue-amount">₱{{ item.total_revenue.toLocaleString() }}</span>
+            </td>
           </tr>
         </tbody>
       </table>

@@ -117,7 +117,8 @@
       </div>
 
       <div class="delivery-info">
-        <h3>📍 Delivery Details</h3>
+        <h3 *ngIf="order.delivery_option === 'delivery'">📍 Delivery Details</h3>
+        <h3 *ngIf="order.delivery_option === 'pickup'">🏪 Pickup Details</h3>
         <div class="delivery-details">
           <div class="delivery-item">
             <strong>Customer:</strong> {{ order.customer_name }}
@@ -125,14 +126,57 @@
           <div class="delivery-item">
             <strong>Phone:</strong> {{ order.phone }}
           </div>
-          <div class="delivery-item">
-            <strong>Address:</strong> {{ order.address }}
+          <div class="delivery-item" *ngIf="order.delivery_option === 'delivery'">
+            <strong>Delivery Address:</strong> {{ order.address }}
+          </div>
+          <div class="delivery-item" *ngIf="order.delivery_option === 'pickup'">
+            <strong>Pickup Location:</strong> {{ order.address }}
           </div>
           <div class="delivery-item">
-            <strong>Requested Delivery:</strong> {{ order.requested_delivery | date:'medium' }}
+            <strong>Requested Time:</strong> {{ order.requested_delivery | date:'medium' }}
           </div>
-          <div class="delivery-item total">
-            <strong>Total Amount:</strong> ₱{{ order.total_price.toFixed(2) }}
+        </div>
+      </div>
+
+      <!-- Order Total Section with Delivery Fee Info -->
+      <div class="order-total-section">
+        <h3>💰 Order Total</h3>
+        
+        <!-- Food Items Total -->
+        <div class="total-breakdown">
+          <div class="total-item">
+            <span>Food Items:</span>
+            <span>₱{{ getFoodTotal().toFixed(2) }}</span>
+          </div>
+          
+          <!-- Delivery Fee Section -->
+          <div class="total-item delivery-fee-item" *ngIf="order.delivery_option === 'delivery'">
+            <span>Delivery Fee:</span>
+            <span *ngIf="order.delivery_fee_status === 'pending'" class="delivery-pending">
+              <span class="pending-badge">Pending Review</span>
+            </span>
+            <span *ngIf="order.delivery_fee_status === 'set'">
+              ₱{{ order.delivery_fee.toFixed(2) }}
+            </span>
+          </div>
+          
+          <!-- Delivery Status Message -->
+          <div class="delivery-status-message" *ngIf="order.delivery_option === 'delivery' && order.delivery_fee_status === 'pending'">
+            <div class="status-alert">
+              ⏳ <strong>Delivery fee is being calculated</strong><br>
+              Admin is reviewing your delivery address. The final total including delivery fee will appear here once completed.
+            </div>
+          </div>
+          
+          <!-- Final Total -->
+          <div class="total-item final-total">
+            <span><strong>Total Amount:</strong></span>
+            <span *ngIf="order.delivery_option === 'pickup' || order.delivery_fee_status === 'set'">
+              <strong>₱{{ order.total_price.toFixed(2) }}</strong>
+            </span>
+            <span *ngIf="order.delivery_option === 'delivery' && order.delivery_fee_status === 'pending'" class="total-pending">
+              <strong>₱{{ getFoodTotal().toFixed(2) }} + delivery fee</strong>
+            </span>
           </div>
         </div>
       </div>

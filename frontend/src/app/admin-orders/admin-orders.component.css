@@ -108,13 +108,15 @@
 .table-container {
   background: #2D2D2D;
   border-radius: 16px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: visible;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.1);
+  -webkit-overflow-scrolling: touch;
 }
 
 .table-scroll-hint {
-  display: none;
+  display: block;
   background: rgba(239, 68, 68, 0.1);
   color: #EF4444;
   padding: 0.5rem 1rem;
@@ -122,10 +124,12 @@
   text-align: center;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   font-family: "Poppins", sans-serif;
+  font-weight: 600;
 }
 
 table {
   width: 100%;
+  min-width: 1600px; /* Increased to accommodate Plus Code and delivery fee columns */
   border-collapse: collapse;
   background: #2D2D2D;
 }
@@ -138,17 +142,21 @@ td {
   font-family: "Poppins", sans-serif;
 }
 
-/* Optimize column widths */
+/* Optimize column widths for new structure with 14 columns */
 th:nth-child(1), td:nth-child(1) { max-width: 80px; overflow: hidden; text-overflow: ellipsis; } /* Order ID */
 th:nth-child(2), td:nth-child(2) { max-width: 120px; word-wrap: break-word; } /* Customer */
 th:nth-child(3), td:nth-child(3) { max-width: 100px; word-wrap: break-word; } /* Contact */
-th:nth-child(4), td:nth-child(4) { max-width: 150px; word-wrap: break-word; } /* Address */
-th:nth-child(5), td:nth-child(5) { max-width: 100px; } /* Payment Method */
-th:nth-child(6), td:nth-child(6) { max-width: 80px; text-align: right; } /* Total */
-th:nth-child(7), td:nth-child(7) { max-width: 180px; } /* Delivery Date */
-th:nth-child(8), td:nth-child(8) { max-width: 120px; } /* Payment Status */
-th:nth-child(9), td:nth-child(9) { max-width: 120px; } /* Order Status */
-th:nth-child(10), td:nth-child(10) { min-width: 100px; white-space: nowrap; } /* Actions */
+th:nth-child(4), td:nth-child(4) { max-width: 80px; } /* Type */
+th:nth-child(5), td:nth-child(5) { max-width: 140px; word-wrap: break-word; } /* Address */
+th:nth-child(6), td:nth-child(6) { max-width: 90px; font-family: monospace; } /* Plus Code */
+th:nth-child(7), td:nth-child(7) { max-width: 100px; } /* Payment Method */
+th:nth-child(8), td:nth-child(8) { max-width: 80px; text-align: right; } /* Food Total */
+th:nth-child(9), td:nth-child(9) { min-width: 120px; max-width: 150px; } /* Delivery Fee */
+th:nth-child(10), td:nth-child(10) { max-width: 80px; text-align: right; } /* Final Total */
+th:nth-child(11), td:nth-child(11) { max-width: 180px; } /* Delivery Date */
+th:nth-child(12), td:nth-child(12) { max-width: 120px; } /* Payment Status */
+th:nth-child(13), td:nth-child(13) { max-width: 120px; } /* Order Status */
+th:nth-child(14), td:nth-child(14) { min-width: 100px; white-space: nowrap; } /* Actions */
 
 th {
   background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
@@ -281,6 +289,55 @@ td select option {
   outline-offset: 2px;
 }
 
+/* Action Buttons Container */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Delete Order Button */
+.delete-order-btn {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: 80px;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.delete-order-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(239, 68, 68, 0.4);
+}
+
+.delete-order-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+}
+
+.delete-order-btn:disabled {
+  background: #6B7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.delete-order-btn:focus-visible {
+  outline: 2px solid #EF4444;
+  outline-offset: 2px;
+}
+
 .loading {
   text-align: center;
   padding: 3rem;
@@ -376,7 +433,7 @@ td select option {
   }
 
   table {
-    min-width: 1000px;
+    min-width: 1600px; /* Increased for Plus Code and delivery fee columns */
   }
 
   th, td {
@@ -401,10 +458,15 @@ td select option {
     min-width: 140px;
   }
 
-  .view-details-btn {
+  .view-details-btn, .delete-order-btn {
     font-size: 0.7rem;
     padding: 0.4rem 0.6rem;
     min-width: 70px;
+  }
+  
+  .action-buttons {
+    gap: 0.25rem;
+    flex-direction: column;
   }
 }
 
@@ -443,7 +505,7 @@ td select option {
   }
 
   table {
-    min-width: 900px;
+    min-width: 1500px; /* Increased for Plus Code and delivery fee columns */
   }
 
   th, td {
@@ -463,7 +525,7 @@ td select option {
     min-width: 130px;
   }
 
-  .view-details-btn {
+  .view-details-btn, .delete-order-btn {
     font-size: 0.65rem;
     padding: 0.3rem 0.5rem;
     min-width: 60px;
@@ -505,7 +567,7 @@ td select option {
     min-width: 120px;
   }
 
-  .view-details-btn {
+  .view-details-btn, .delete-order-btn {
     font-size: 0.6rem;
     padding: 0.25rem 0.4rem;
     min-width: 50px;
@@ -536,4 +598,319 @@ td select option {
 td select:focus-visible {
   outline: 2px solid #EF4444;
   outline-offset: 2px;
+}
+
+/* Delivery Fee Styles */
+.delivery-type {
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.1);
+  color: #22C55E;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.delivery-type.pickup {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.delivery-fee-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.set-fee-btn {
+  background: #FFA500;
+  color: #000;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
+}
+
+.set-fee-btn:hover {
+  background: #FF8C00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 165, 0, 0.4);
+}
+
+.delivery-fee-set {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #22C55E;
+  font-weight: 600;
+}
+
+.edit-fee-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
+
+.edit-fee-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFA500;
+}
+
+.not-applicable {
+  color: #888;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.delivery-fee-pending {
+  display: flex;
+  align-items: center;
+}
+
+/* Plus Code Styles */
+.plus-code {
+  font-family: 'Courier New', monospace;
+  background: rgba(59, 130, 246, 0.1);
+  color: #3B82F6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.no-plus-code {
+  color: #888;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+/* Delivery Fee Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  backdrop-filter: blur(4px);
+}
+
+.delivery-fee-modal {
+  background: #2D2D2D;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #FFFFFF;
+  font-family: "Poppins", sans-serif;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  line-height: 1;
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.order-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.order-info h4 {
+  margin: 0 0 1rem 0;
+  color: #FFA500;
+  font-family: "Poppins", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.customer-details p {
+  margin: 0.5rem 0;
+  color: #D1D5DB;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.customer-details strong {
+  color: #FFFFFF;
+  min-width: 80px;
+  display: inline-block;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #FFFFFF;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+}
+
+.fee-input {
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFFFFF;
+  font-family: "Poppins", sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.fee-input:focus {
+  outline: none;
+  border-color: #FFA500;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(255, 165, 0, 0.2);
+}
+
+.fee-input::placeholder {
+  color: #9CA3AF;
+}
+
+.error-message {
+  color: #EF4444;
+  font-size: 0.8rem;
+  margin-top: 0.5rem;
+  font-family: "Poppins", sans-serif;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 2rem;
+}
+
+.cancel-btn, .confirm-btn {
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: "Poppins", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #D1D5DB;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #FFFFFF;
+}
+
+.confirm-btn {
+  background: #FFA500;
+  color: #000;
+  box-shadow: 0 2px 4px rgba(255, 165, 0, 0.3);
+}
+
+.confirm-btn:hover:not(:disabled) {
+  background: #FF8C00;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(255, 165, 0, 0.4);
+}
+
+.confirm-btn:disabled {
+  background: #6B7280;
+  color: #9CA3AF;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Mobile Responsive for Modal */
+@media (max-width: 768px) {
+  .delivery-fee-modal {
+    width: 95%;
+    margin: 1rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .button-group {
+    flex-direction: column;
+  }
+  
+  .cancel-btn, .confirm-btn {
+    width: 100%;
+  }
 }

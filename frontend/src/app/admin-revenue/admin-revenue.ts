@@ -13,6 +13,22 @@ interface RevenueData {
   total_revenue: number;
 }
 
+interface DetailedRevenueData {
+  order_id: string;
+  customer_name: string;
+  phone: string;
+  date: string;
+  payment_method: string;
+  delivery_option: string;
+  total_revenue: number;
+  created_at: string;
+}
+
+interface RevenueApiResponse {
+  detailed: DetailedRevenueData[];
+  aggregated: RevenueData[];
+}
+
 interface ExpenseData {
   id: number;
   date: string;
@@ -33,6 +49,7 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   @ViewChild('profitChart') profitChartRef!: ElementRef;
 
   revenueData: RevenueData[] = [];
+  detailedRevenueData: DetailedRevenueData[] = [];
   expenseData: ExpenseData[] = [];
   totalRevenue = 0;
   totalExpenses = 0;
@@ -58,10 +75,21 @@ export class AdminRevenue implements OnInit, AfterViewInit {
   }
 
   loadRevenueData() {
-    this.http.get<RevenueData[]>(`${environment.apiUrl}/admin/revenue`, { headers: this.authService.getAuthHeaders() }).subscribe({
-      next: (data) => {
-        this.revenueData = data;
-        this.totalRevenue = data.reduce((sum, item) => sum + item.total_revenue, 0);
+    this.http.get<RevenueApiResponse | RevenueData[]>(`${environment.apiUrl}/admin/revenue`, { headers: this.authService.getAuthHeaders() }).subscribe({
+      next: (response) => {
+        // Handle new API response format
+        if (response && typeof response === 'object' && 'detailed' in response && 'aggregated' in response) {
+          this.revenueData = response.aggregated;
+          this.detailedRevenueData = response.detailed;
+          this.totalRevenue = this.detailedRevenueData.reduce((sum, item) => sum + item.total_revenue, 0);
+        } 
+        // Handle old API response format (fallback)
+        else if (Array.isArray(response)) {
+          this.revenueData = response as RevenueData[];
+          this.detailedRevenueData = []; // No detailed data available in old format
+          this.totalRevenue = this.revenueData.reduce((sum, item) => sum + item.total_revenue, 0);
+        }
+        
         this.calculateProfit();
         this.updateCharts();
       },

@@ -7,11 +7,30 @@
       <div class="order-details">
         <h3>Order #{{orderId}}</h3>
         <p>Thank you for your order! We've received your order and will begin processing it shortly.</p>
-        <p><strong>Next Steps:</strong></p>
-        <ul>
-          <li>Payment verification will be processed</li>
-          <li>Delivery will be scheduled as requested</li>
-        </ul>
+        
+        <!-- Different messages for delivery vs pickup -->
+        <div *ngIf="!isPickupMode" class="delivery-instructions">
+          <div class="important-notice">
+            📋 <strong>Important:</strong> Please check your order tracking for the total fee including delivery charges.
+          </div>
+          <p><strong>Next Steps:</strong></p>
+          <ul>
+            <li>Admin will review your delivery address</li>
+            <li>Delivery fee will be calculated and added to your order</li>
+            <li>Check order tracking for the final total amount</li>
+            <li>Send payment once the total fee is available</li>
+            <li>Delivery will be scheduled as requested</li>
+          </ul>
+        </div>
+        
+        <div *ngIf="isPickupMode" class="pickup-instructions">
+          <p><strong>Next Steps:</strong></p>
+          <ul>
+            <li>Payment verification will be processed</li>
+            <li>Pickup will be scheduled as requested</li>
+            <li>We'll notify you when your order is ready</li>
+          </ul>
+        </div>
       </div>
       
       <div class="action-buttons">
@@ -51,8 +70,27 @@
         </div>
       </div>
       
+      <!-- Order Total Section -->
       <div class="order-total">
-        <h3>Total: ₱{{ getCartTotal().toFixed(2) }}</h3>
+        <div class="total-breakdown">
+          <div class="subtotal">
+            Food Total: ₱{{ getCartTotal().toFixed(2) }}
+          </div>
+          
+          <div class="delivery-fee-section" *ngIf="!isPickupMode">
+            <div class="delivery-note">
+              📋 Delivery fee will be calculated by admin after order review
+            </div>
+          </div>
+          
+          <div class="total-final">
+            <strong *ngIf="isPickupMode">Total: ₱{{ getTotalForDisplay().toFixed(2) }}</strong>
+            <strong *ngIf="!isPickupMode">Food Total: ₱{{ getTotalForDisplay().toFixed(2) }}</strong>
+            <div *ngIf="!isPickupMode" class="delivery-note-small">
+              (Final total with delivery fee will be shown in order tracking)
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -87,46 +125,186 @@
     </div>
   </label>
 
-  <label>
-    Address:
-    <textarea formControlName="address" placeholder="Enter your delivery address"></textarea>
-    <div
-      *ngIf="
-        checkoutForm.get('address')?.invalid &&
-        checkoutForm.get('address')?.touched
-      "
-      class="error-message"
-    >
-      Address is required.
+  <!-- Delivery Option Toggle -->
+  <div class="delivery-option-container">
+    <label class="delivery-option-label">Choose your order option:</label>
+    
+    <div class="delivery-toggle-group">
+      <div class="toggle-option">
+        <input 
+          type="radio" 
+          id="delivery" 
+          name="deliveryOption" 
+          value="delivery" 
+          formControlName="deliveryOption"
+          class="toggle-input"
+        />
+        <label for="delivery" class="toggle-label">
+          <span class="toggle-icon">🚚</span>
+          <span class="toggle-text">Delivery</span>
+          <span class="toggle-description">We'll deliver to your location</span>
+        </label>
+      </div>
+      
+      <div class="toggle-option">
+        <input 
+          type="radio" 
+          id="pickup" 
+          name="deliveryOption" 
+          value="pickup" 
+          formControlName="deliveryOption"
+          class="toggle-input"
+        />
+        <label for="pickup" class="toggle-label">
+          <span class="toggle-icon">🏪</span>
+          <span class="toggle-text">Pickup at Store</span>
+          <span class="toggle-description">Save on delivery fees!</span>
+        </label>
+      </div>
     </div>
-  </label>
+  </div>
 
-  <label>
-    Plus Code (Optional - for precise delivery location):
-    <div class="plus-code-input-group">
-      <input formControlName="plusCode" placeholder="e.g., 3JVG+HG5" />
+  <!-- Delivery Address Section (Hidden for Pickup) -->
+  <div *ngIf="!isPickupMode" class="delivery-section">
+    
+    <!-- Free Address Search with OpenStreetMap -->
+    <label>
+      Search for Address:
+      <div class="search-container">
+        <input 
+          id="search-address-input"
+          formControlName="searchAddress" 
+          placeholder="Search for your delivery address..."
+          class="search-input"
+          autocomplete="off"
+          (input)="searchAddress(($any($event.target)).value)"
+        />
+        <div *ngIf="isMapLoading" class="loading-indicator">
+          <span>🗺️ Loading Maps...</span>
+        </div>
+        <div *ngIf="isSearching" class="loading-indicator">
+          <span>🔍 Searching...</span>
+        </div>
+      </div>
+      
+      <!-- Search Results Dropdown -->
+      <div *ngIf="searchResults.length > 0" class="search-results">
+        <div 
+          *ngFor="let result of searchResults" 
+          class="search-result-item"
+          (click)="selectSearchResult(result)"
+        >
+          <div class="result-icon">📍</div>
+          <div class="result-text">{{ result.display_name }}</div>
+        </div>
+      </div>
+      
+      <div class="help-text">
+        <small>🆓 Free address search powered by OpenStreetMap</small>
+      </div>
+    </label>
+
+    <!-- Map Toggle for Mobile -->
+    <div class="map-controls" *ngIf="isMobileDevice">
       <button 
         type="button" 
-        class="get-location-btn"
-        (click)="getCurrentLocation()"
-        [disabled]="isGettingLocation"
+        class="map-toggle-btn"
+        (click)="toggleMapVisibility()"
+        [disabled]="isMapLoading"
       >
-        {{ isGettingLocation ? 'Getting Location...' : '📍 Get My Location' }}
+        {{ isMapVisible ? '📍 Hide Map' : '🗺️ Show Map' }}
+      </button>
+      <button 
+        type="button" 
+        class="current-location-btn"
+        (click)="getCurrentLocation()"
+        [disabled]="isGettingLocation || isMapLoading"
+      >
+        {{ isGettingLocation ? '⏳ Getting Location...' : '📍 Use Current Location' }}
       </button>
     </div>
-    <div class="help-text">
-      <small>Plus Codes help delivery riders find your exact location. Click the button to auto-fill with your current location.</small>
+
+    <!-- OpenStreetMap + Leaflet Container -->
+    <div class="map-container" [class.mobile-hidden]="isMobileDevice && !isMapVisible">
+      <div id="leaflet-map" class="leaflet-map"></div>
+      <div class="map-overlay-controls" *ngIf="!isMobileDevice">
+        <button 
+          type="button" 
+          class="current-location-btn"
+          (click)="getCurrentLocation()"
+          [disabled]="isGettingLocation || isMapLoading"
+          title="Use current location"
+        >
+          {{ isGettingLocation ? '⏳' : '📍' }}
+        </button>
+      </div>
+      <div class="map-attribution">
+        <small>🆓 Free maps by <a href="https://www.openstreetmap.org/" target="_blank">OpenStreetMap</a></small>
+      </div>
     </div>
-    <div
-      *ngIf="
-        checkoutForm.get('plusCode')?.invalid &&
-        checkoutForm.get('plusCode')?.touched
-      "
-      class="error-message"
-    >
-      Please enter a valid Plus Code format (e.g., 3JVG+HG5).
+
+    <!-- Manual Address Entry -->
+    <label>
+      Delivery Address:
+      <textarea 
+        formControlName="address" 
+        placeholder="Enter or confirm your delivery address"
+        class="address-textarea"
+      ></textarea>
+      <div
+        *ngIf="
+          checkoutForm.get('address')?.invalid &&
+          checkoutForm.get('address')?.touched
+        "
+        class="error-message"
+      >
+        Address is required.
+      </div>
+    </label>
+
+    <!-- Plus Code Input -->
+    <label>
+      Plus Code (Optional - Precise Location):
+      <div class="plus-code-display">
+        <input 
+          formControlName="plusCode" 
+          placeholder="Enter Plus Code (e.g., 7Q723JWC+XY) or leave blank"
+          class="plus-code-input"
+          maxlength="20"
+        />
+        <div class="help-text">
+          <small>🎯 Plus Code provides precise delivery location. Right-click on Google Maps to get the complete Plus Code.</small>
+        </div>
+        <div 
+          class="error-message" 
+          *ngIf="checkoutForm.get('plusCode')?.invalid && checkoutForm.get('plusCode')?.touched"
+        >
+          Please enter a complete Plus Code format (e.g., 7Q723JWC+XY or G5J5+XY)
+        </div>
+      </div>
+    </label>
+    
+  </div>
+
+  <!-- Pickup Information (Shown for Pickup) -->
+  <div *ngIf="isPickupMode" class="pickup-info">
+    <div class="pickup-details">
+      <div class="pickup-icon">🏪</div>
+      <div class="pickup-content">
+        <h3>Store Pickup Details</h3>
+        <p><strong>📍 Pickup Location:</strong><br>
+        Helen's Kitchen<br>
+        San Fernando, Pampanga</p>
+        <p><strong>📞 Contact:</strong> 0917-XXX-XXXX</p>
+        <p><strong>⏰ Pickup Hours:</strong><br>
+        Monday - Sunday: 10:00 AM - 9:00 PM</p>
+        <div class="pickup-note">
+          <span class="note-icon">💡</span>
+          <span>Please bring a valid ID and your order confirmation when picking up.</span>
+        </div>
+      </div>
     </div>
-  </label>
+  </div>
 
   <label>
     Payment Method:

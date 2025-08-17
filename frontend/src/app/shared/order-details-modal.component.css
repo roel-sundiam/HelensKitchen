@@ -256,6 +256,100 @@
   font-size: 1.1rem;
 }
 
+/* Delivery Type Styling */
+.delivery-type {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #2c5d31;
+  color: #90ee90;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.delivery-type.pickup {
+  background: #4a3c1a;
+  color: #f0c300;
+}
+
+/* Order Total Section */
+.order-total-section {
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.order-total-section h3 {
+  color: #f0c300;
+  margin: 0 0 16px 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.total-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.total-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #444;
+}
+
+.total-item:last-child {
+  border-bottom: none;
+}
+
+.total-item span:first-child {
+  color: #ccc;
+  font-weight: 500;
+}
+
+.total-item span:last-child {
+  color: #f0c300;
+  font-weight: 600;
+}
+
+/* Delivery Fee Specific Styling */
+.delivery-fee-item .delivery-fee-pending {
+  color: #ffa500;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.delivery-fee-item .delivery-fee-set {
+  color: #90ee90;
+  font-weight: 600;
+}
+
+.delivery-fee-item .not-applicable {
+  color: #aaa;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+/* Final Total Styling */
+.final-total {
+  margin-top: 8px;
+  padding-top: 16px !important;
+  border-top: 2px solid #f0c300 !important;
+  border-bottom: none !important;
+  font-size: 1.1rem;
+}
+
+.final-total span {
+  color: #f0c300 !important;
+  font-weight: 700 !important;
+  font-size: 1.1rem;
+}
+
 .modal-footer {
   padding: 20px 24px;
   border-top: 1px solid #333;
@@ -320,6 +414,14 @@
   
   .delivery-item strong {
     min-width: auto;
+  }
+  
+  .total-item {
+    padding: 6px 0;
+  }
+  
+  .final-total {
+    padding-top: 12px !important;
   }
 }
 

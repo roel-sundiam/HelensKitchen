@@ -13,9 +13,13 @@ interface Order {
   id: string;
   customer_name: string;
   phone: string;
+  delivery_option: string;
   address: string;
+  plus_code?: string;
   payment_method: string;
   total_price: number;
+  delivery_fee: number;
+  delivery_fee_status: 'pending' | 'set' | 'not_applicable';
   status: string;
   payment_status: string;
   requested_delivery: string;
@@ -36,9 +40,13 @@ interface OrderDetails {
   id: string;
   customer_name: string;
   phone: string;
+  delivery_option: string;
   address: string;
+  plus_code?: string;
   payment_method: string;
   total_price: number;
+  delivery_fee: number;
+  delivery_fee_status: 'pending' | 'set' | 'not_applicable';
   status: string;
   payment_status: string;
   requested_delivery: string;
@@ -116,6 +124,14 @@ export class AdminOrdersComponent implements OnInit {
   showOrderDetailsModal = false;
   selectedOrderDetails: OrderDetails | null = null;
   loadingOrderDetails = false;
+
+  // Delivery fee modal states
+  showDeliveryFeeModal = false;
+  selectedOrderForFee: Order | null = null;
+  deliveryFeeInput: number = 0;
+
+  // Delete order state
+  orderToDelete: Order | null = null;
 
   constructor(
     private http: HttpClient,
@@ -506,5 +522,122 @@ export class AdminOrdersComponent implements OnInit {
     this.showOrderDetailsModal = false;
     this.selectedOrderDetails = null;
     this.loadingOrderDetails = false;
+  }
+
+  setDeliveryFee(order: Order) {
+    this.selectedOrderForFee = order;
+    this.deliveryFeeInput = order.delivery_fee || 0;
+    this.showDeliveryFeeModal = true;
+  }
+
+  closeDeliveryFeeModal() {
+    this.showDeliveryFeeModal = false;
+    this.selectedOrderForFee = null;
+    this.deliveryFeeInput = 0;
+  }
+
+  onDeliveryFeeModalOverlayClick(event: Event) {
+    if (event.target === event.currentTarget) {
+      this.closeDeliveryFeeModal();
+    }
+  }
+
+  submitDeliveryFee() {
+    if (!this.selectedOrderForFee || isNaN(this.deliveryFeeInput) || this.deliveryFeeInput < 0) {
+      this.showNotification('error', 'Invalid Input', 'Please enter a valid delivery fee amount (0 or higher).');
+      return;
+    }
+
+    const order = this.selectedOrderForFee;
+    const deliveryFee = this.deliveryFeeInput;
+    const endpoint = `${environment.apiUrl}/admin/orders/${order.id}/delivery-fee`;
+    
+    this.http.put(endpoint, { delivery_fee: deliveryFee }, {
+      headers: this.authService.getAuthHeaders()
+    }).subscribe({
+      next: (response: any) => {
+        // Update the order in the local array
+        order.delivery_fee = deliveryFee;
+        order.delivery_fee_status = 'set';
+        order.total_price = response.new_total || (order.total_price + deliveryFee);
+        
+        this.showNotification('success', 'Delivery Fee Set', 
+          `Delivery fee of ₱${deliveryFee.toFixed(2)} has been set successfully.\nNew total: ₱${order.total_price.toFixed(2)}`);
+        
+        this.closeDeliveryFeeModal();
+      },
+      error: (err) => {
+        console.error('Error setting delivery fee:', err);
+        let errorMessage = 'Failed to set delivery fee. Please try again.';
+        
+        if (err.error && err.error.error) {
+          errorMessage = err.error.error;
+        }
+        
+        this.showNotification('error', 'Update Failed', errorMessage);
+      }
+    });
+  }
+
+  getFoodTotal(order: Order): number {
+    // For delivery orders with set delivery fee, subtract delivery fee from total
+    if (order.delivery_option === 'delivery' && order.delivery_fee_status === 'set') {
+      return order.total_price - order.delivery_fee;
+    }
+    // For pickup orders or pending delivery fee orders, total price is the food total
+    return order.total_price;
+  }
+
+  confirmDeleteOrder(order: Order) {
+    this.orderToDelete = order;
+    this.showConfirmModal = true;
+    this.confirmModalTitle = 'Delete Order';
+    this.confirmModalMessage = `Are you sure you want to delete Order #${order.id}?\n\nCustomer: ${order.customer_name}\nTotal: ₱${order.total_price.toFixed(2)}\n\nThis action cannot be undone.`;
+    this.confirmModalAction = () => this.deleteOrder();
+    this.confirmModalCancelAction = () => {
+      this.orderToDelete = null;
+    };
+  }
+
+  deleteOrder() {
+    if (!this.orderToDelete) {
+      console.error('No order selected for deletion');
+      return;
+    }
+
+    const orderId = this.orderToDelete.id;
+    const headers = this.authService.getAuthHeaders();
+
+    this.http.delete(`${environment.apiUrl}/admin/orders/${orderId}`, { headers }).subscribe({
+      next: () => {
+        // Remove the order from the local array
+        this.orders = this.orders.filter(order => order.id !== orderId);
+        
+        this.showNotification(
+          'success',
+          'Order Deleted',
+          `Order #${orderId} has been successfully deleted.`
+        );
+        
+        this.orderToDelete = null;
+      },
+      error: (err) => {
+        console.error('Failed to delete order:', err);
+        
+        let errorMessage = 'Failed to delete order. Please try again.';
+        let errorDetails = null;
+        
+        if (err.error && err.error.error) {
+          errorMessage = err.error.error;
+        }
+        
+        if (err.status) {
+          errorDetails = `HTTP ${err.status}: ${err.statusText}\n${JSON.stringify(err.error, null, 2)}`;
+        }
+        
+        this.showNotification('error', 'Delete Failed', errorMessage, errorDetails);
+        this.orderToDelete = null;
+      }
+    });
   }
 }

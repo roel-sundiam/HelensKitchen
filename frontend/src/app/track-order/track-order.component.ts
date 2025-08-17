@@ -19,9 +19,12 @@ interface Order {
   id: string;
   customer_name: string;
   phone: string;
+  delivery_option: string;
   address: string;
   payment_method: string;
   total_price: number;
+  delivery_fee: number;
+  delivery_fee_status: 'pending' | 'set' | 'not_applicable';
   status: string;
   payment_status: string;
   requested_delivery: string;
@@ -128,5 +131,12 @@ export class TrackOrderComponent {
         } 
       });
     }
+  }
+
+  getFoodTotal(): number {
+    if (!this.order || !this.order.items) return 0;
+    return this.order.items.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
   }
 }

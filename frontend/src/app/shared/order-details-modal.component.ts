@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 interface OrderItem {
@@ -22,6 +22,10 @@ interface OrderDetails {
   payment_status: string;
   requested_delivery: string;
   created_at: string;
+  delivery_option: string;
+  delivery_fee: number;
+  delivery_fee_status: 'pending' | 'set' | 'not_applicable';
+  plus_code?: string;
   items: OrderItem[];
 }
 
@@ -103,13 +107,54 @@ interface OrderDetails {
                 <strong>Phone:</strong> {{ orderDetails.phone }}
               </div>
               <div class="delivery-item">
+                <strong>Order Type:</strong> 
+                <span class="delivery-type" [class.pickup]="getDeliveryOption() === 'pickup'">
+                  {{ getDeliveryOption() === 'pickup' ? '🏪 Store Pickup' : '🚚 Home Delivery' }}
+                </span>
+              </div>
+              <div class="delivery-item" *ngIf="getDeliveryOption() === 'delivery'">
                 <strong>Address:</strong> {{ orderDetails.address }}
               </div>
-              <div class="delivery-item">
-                <strong>Requested Delivery:</strong> {{ orderDetails.requested_delivery | date:'medium' }}
+              <div class="delivery-item" *ngIf="orderDetails.plus_code">
+                <strong>Plus Code:</strong> {{ orderDetails.plus_code }}
               </div>
-              <div class="delivery-item total">
-                <strong>Total Amount:</strong> ₱{{ orderDetails.total_price.toFixed(2) }}
+              <div class="delivery-item">
+                <strong>Requested {{ getDeliveryOption() === 'pickup' ? 'Pickup' : 'Delivery' }}:</strong> 
+                {{ orderDetails.requested_delivery | date:'medium' }}
+              </div>
+            </div>
+          </div>
+
+          <!-- Order Total Breakdown -->
+          <div class="order-total-section">
+            <h3>💰 Order Total</h3>
+            <div class="total-breakdown">
+              <div class="total-item">
+                <span>Food Total:</span>
+                <span>₱{{ getFoodTotal().toFixed(2) }}</span>
+              </div>
+              
+              <!-- Delivery Fee Section -->
+              <div class="total-item delivery-fee-item" *ngIf="getDeliveryOption() === 'delivery'">
+                <span>Delivery Fee:</span>
+                <span *ngIf="getDeliveryFeeStatus() === 'pending'" class="delivery-fee-pending">
+                  <em>Pending calculation</em>
+                </span>
+                <span *ngIf="getDeliveryFeeStatus() === 'set'" class="delivery-fee-set">
+                  ₱{{ getDeliveryFee().toFixed(2) }}
+                </span>
+              </div>
+              
+              <div class="total-item delivery-fee-item" *ngIf="getDeliveryOption() === 'pickup'">
+                <span>Delivery Fee:</span>
+                <span class="not-applicable">N/A (Store Pickup)</span>
+              </div>
+              
+              <div class="total-item final-total">
+                <strong>
+                  <span>Total Amount:</span>
+                  <span>₱{{ orderDetails.total_price.toFixed(2) }}</span>
+                </strong>
               </div>
             </div>
           </div>
@@ -125,10 +170,14 @@ interface OrderDetails {
   `,
   styleUrls: ['./order-details-modal.component.css']
 })
-export class OrderDetailsModalComponent {
+export class OrderDetailsModalComponent implements OnChanges {
   @Input() isVisible = false;
   @Input() orderDetails: OrderDetails | null = null;
   @Output() closeModal = new EventEmitter<void>();
+
+  ngOnChanges() {
+    // Component lifecycle hook for when inputs change
+  }
 
   onOverlayClick(event: Event) {
     if (event.target === event.currentTarget) {
@@ -152,5 +201,50 @@ export class OrderDetailsModalComponent {
 
   getPaymentIcon(paymentStatus: string): string {
     return paymentStatus === 'Confirmed' ? '💰' : '⏳';
+  }
+
+  getFoodTotal(): number {
+    if (!this.orderDetails) return 0;
+    
+    // If delivery fee is set, subtract it from total to get food total
+    if (this.getDeliveryOption() === 'delivery' && 
+        this.getDeliveryFeeStatus() === 'set') {
+      return this.orderDetails.total_price - this.getDeliveryFee();
+    }
+    
+    // For pickup orders or when delivery fee is not set, total_price is the food total
+    return this.orderDetails.total_price;
+  }
+
+  getDeliveryOption(): string {
+    if (!this.orderDetails) return 'delivery';
+    return this.orderDetails.delivery_option && this.orderDetails.delivery_option.trim() !== '' 
+      ? this.orderDetails.delivery_option 
+      : 'delivery';
+  }
+
+  getDeliveryFee(): number {
+    if (!this.orderDetails) return 0;
+    return this.orderDetails.delivery_fee || 0;
+  }
+
+  getDeliveryFeeStatus(): string {
+    if (!this.orderDetails) return 'pending';
+    
+    if (this.orderDetails.delivery_fee_status && this.orderDetails.delivery_fee_status.trim() !== '') {
+      return this.orderDetails.delivery_fee_status;
+    }
+    
+    // Determine status based on other factors
+    const deliveryOption = this.getDeliveryOption();
+    const deliveryFee = this.getDeliveryFee();
+    
+    if (deliveryOption === 'pickup') {
+      return 'not_applicable';
+    } else if (deliveryFee > 0) {
+      return 'set';
+    } else {
+      return 'pending';
+    }
   }
 }
