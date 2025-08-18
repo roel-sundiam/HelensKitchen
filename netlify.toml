@@ -29,4 +29,21 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Note: Redirects are handled by _redirects file in public folder
+# API proxy redirect
+[[redirects]]
+  from = "/api/*"
+  to = "https://helenskitchen.onrender.com/api/:splat"
+  status = 200
+
+# Root redirect to menu
+[[redirects]]
+  from = "/"
+  to = "/menu"
+  status = 301
+
+# SPA fallback for Angular routes (exclude static files)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false

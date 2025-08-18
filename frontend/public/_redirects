@@ -1,23 +1,21 @@
-# API proxy for local development (not used in production)
+# API proxy 
 /api/*  https://helenskitchen.onrender.com/api/:splat  200
 
-# Static assets - don't redirect these
-/*.js  200
-/*.css  200
-/*.png  200
-/*.jpg  200
-/*.jpeg  200
-/*.gif  200
-/*.svg  200
-/*.ico  200
-/*.woff  200
-/*.woff2  200
-/*.ttf  200
-/*.eot  200
-/*.json  200
-/*.xml  200
-/*.txt  200
-/assets/*  200
+# Handle root redirect to menu
+/  /menu  301
 
-# Angular SPA fallback
-/*  /index.html  200
+# Explicitly handle Angular routes (exclude static files)
+/menu  /index.html  200
+/menu/*  /index.html  200
+/cart  /index.html  200
+/cart/*  /index.html  200
+/checkout  /index.html  200
+/checkout/*  /index.html  200
+/track-order  /index.html  200
+/track-order/*  /index.html  200
+/feedback  /index.html  200
+/feedback/*  /index.html  200
+/admin/*  /index.html  200
+
+# Catch-all for Angular routes (exclude files with extensions)
+/*  /index.html  200  !
