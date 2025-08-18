@@ -1,9 +1,32 @@
 [build]
   base = "frontend"
   command = "ng build --configuration=netlify"
-  publish = "frontend/dist/frontend"
+  publish = "dist/frontend/browser"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+# Headers for proper MIME types for JavaScript modules
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.mjs"
+  [headers.values]
+    Content-Type = "application/javascript; charset=utf-8" 
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers for CSS files
+[[headers]]
+  for = "/*.css"
+  [headers.values]
+    Content-Type = "text/css; charset=utf-8"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Headers for other static assets
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Note: Redirects are handled by _redirects file in public folder
