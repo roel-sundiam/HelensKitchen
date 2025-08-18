@@ -2,17 +2,135 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>Helen's Kitchen Admin</title>
   <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Primary Meta Tags -->
+  <meta name="title" content="Helen's Kitchen Admin">
+  <meta name="description" content="Helen's Kitchen food ordering system - Admin interface for managing orders, revenue, and business operations">
+  <meta name="keywords" content="food ordering, restaurant management, admin panel, Helen's Kitchen">
+  <meta name="author" content="Helen's Kitchen">
+  
+  <!-- Favicon and Icons -->
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">
+  
+  <!-- Apple Touch Icons (iOS) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="144x144" href="icons/icon-144x144.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="icons/icon-120x120.png">
+  <link rel="apple-touch-icon" sizes="114x114" href="icons/icon-114x114.png">
+  <link rel="apple-touch-icon" sizes="76x76" href="icons/icon-76x76.png">
+  <link rel="apple-touch-icon" sizes="72x72" href="icons/icon-72x72.png">
+  <link rel="apple-touch-icon" sizes="60x60" href="icons/icon-60x60.png">
+  <link rel="apple-touch-icon" sizes="57x57" href="icons/icon-57x57.png">
+  
+  <!-- iOS Safari Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Helen's Kitchen">
+  <meta name="format-detection" content="telephone=no">
+  
+  <!-- iOS Splash Screens -->
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/iPhone_14_Pro_Max_portrait.png">
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/iPhone_14_Pro_portrait.png">
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/iPhone_14_portrait.png">
+  <link rel="apple-touch-startup-image" media="screen and (device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" href="splash/iPhone_13_mini_portrait.png">
+  
+  <!-- Android Meta Tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#D4AF37">
+  <meta name="msapplication-TileColor" content="#D4AF37">
+  <meta name="msapplication-config" content="browserconfig.xml">
+  
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Poppins:wght@400;500;600;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Lato:wght@300;400;500;600&display=swap" rel="stylesheet">
+  
   <!-- Leaflet CSS for OpenStreetMap integration -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
 </head>
 <body>
   <app-root></app-root>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((registration) => {
+            console.log('PWA: Service Worker registered successfully:', registration.scope);
+            
+            // Listen for service worker messages
+            navigator.serviceWorker.addEventListener('message', (event) => {
+              if (event.data && event.data.type === 'BADGE_UPDATED') {
+                // Forward badge updates to Angular app
+                window.dispatchEvent(new CustomEvent('badgeUpdated', { 
+                  detail: { count: event.data.count } 
+                }));
+              }
+            });
+            
+            // Check for service worker updates
+            registration.addEventListener('updatefound', () => {
+              const newWorker = registration.installing;
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New service worker available, show update notification
+                  console.log('PWA: New service worker available');
+                  window.dispatchEvent(new CustomEvent('swUpdateAvailable'));
+                }
+              });
+            });
+          })
+          .catch((error) => {
+            console.error('PWA: Service Worker registration failed:', error);
+          });
+      });
+    } else {
+      console.warn('PWA: Service Worker not supported by this browser');
+    }
+    
+    // Install prompt handling
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (event) => {
+      // Prevent the mini-infobar from appearing on mobile
+      event.preventDefault();
+      // Stash the event so it can be triggered later
+      deferredPrompt = event;
+      console.log('PWA: Install prompt ready');
+      
+      // Notify Angular app that install is available
+      window.dispatchEvent(new CustomEvent('pwaInstallAvailable'));
+    });
+    
+    // Show install prompt function (can be called from Angular)
+    window.showPWAInstallPrompt = () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+          if (choiceResult.outcome === 'accepted') {
+            console.log('PWA: User accepted the install prompt');
+          } else {
+            console.log('PWA: User dismissed the install prompt');
+          }
+          deferredPrompt = null;
+        });
+      }
+    };
+    
+    // Handle app installation
+    window.addEventListener('appinstalled', (event) => {
+      console.log('PWA: App was installed successfully');
+      window.dispatchEvent(new CustomEvent('pwaInstalled'));
+    });
+  </script>
 </body>
 </html>

@@ -169,6 +169,22 @@ const stockMovementSchema = new mongoose.Schema({
   admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' }
 }, { timestamps: true });
 
+// Push Notification Subscription Schema
+const pushSubscriptionSchema = new mongoose.Schema({
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser', required: true },
+  endpoint: { type: String, required: true },
+  keys: {
+    p256dh: { type: String, required: true },
+    auth: { type: String, required: true }
+  },
+  user_agent: String,
+  is_active: { type: Boolean, default: true },
+  last_used: { type: Date, default: Date.now }
+}, { timestamps: true });
+
+// Create compound index for efficient queries
+pushSubscriptionSchema.index({ admin_id: 1, endpoint: 1 }, { unique: true });
+
 // Create models
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 const MenuVariant = mongoose.model('MenuVariant', menuVariantSchema);
@@ -185,6 +201,7 @@ const AnalyticsEvent = mongoose.model('AnalyticsEvent', analyticsEventSchema);
 const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 const MenuItemIngredient = mongoose.model('MenuItemIngredient', menuItemIngredientSchema);
 const StockMovement = mongoose.model('StockMovement', stockMovementSchema);
+const PushSubscription = mongoose.model('PushSubscription', pushSubscriptionSchema);
 
 module.exports = {
   connectToMongoDB,
@@ -202,5 +219,6 @@ module.exports = {
   AnalyticsEvent,
   Ingredient,
   MenuItemIngredient,
-  StockMovement
+  StockMovement,
+  PushSubscription
 };

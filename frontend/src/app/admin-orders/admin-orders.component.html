@@ -1,12 +1,60 @@
 <div class="admin-orders-container">
   <div class="admin-content">
     <div class="admin-header">
-      <h2>📋 Order Management</h2>
+      <h2>📋 Order Management 
+        <span class="badge-counter" *ngIf="badgeCount > 0">{{badgeCount}}</span>
+      </h2>
+      <div class="header-actions">
+        <div class="notification-controls">
+          <button class="notification-btn" 
+                  *ngIf="notificationsEnabled" 
+                  (click)="refreshNotifications()"
+                  title="Refresh notifications">
+            🔔 <span class="badge-count" *ngIf="badgeCount > 0">{{badgeCount}}</span>
+          </button>
+          <button class="notification-btn disabled" 
+                  *ngIf="!notificationsEnabled"
+                  (click)="enableNotifications()"
+                  title="Enable notifications">
+            🔕 Enable Alerts
+          </button>
+        </div>
+      </div>
       <div class="order-stats" *ngIf="orders.length > 0">
         <span class="stat-item">Total Orders: {{orders.length}}</span>
         <span class="stat-item">New: {{getOrdersByStatus('New').length}}</span>
         <span class="stat-item">Processing: {{getOrdersByStatus('Processing').length}}</span>
         <span class="stat-item">Delivered: {{getOrdersByStatus('Delivered').length}}</span>
+      </div>
+    </div>
+
+    <!-- Notification Setup Banner -->
+    <div class="notification-setup-banner" *ngIf="showNotificationSetup">
+      <div class="banner-content">
+        <div class="banner-icon">📱</div>
+        <div class="banner-text">
+          <h3>Enable iPhone Notifications 📱</h3>
+          <p>{{getNotificationHelpText()}} </p>
+        </div>
+        <div class="banner-actions">
+          <button class="btn-primary" 
+                  *ngIf="notificationPermission !== 'denied'" 
+                  (click)="enableNotifications()">
+            Enable Notifications
+          </button>
+          <button class="btn-secondary" 
+                  *ngIf="notificationsEnabled" 
+                  (click)="disableNotifications()">
+            Disable
+          </button>
+          <button class="btn-secondary" 
+                  (click)="showDebugInfo()">
+            Debug Info
+          </button>
+          <button class="btn-text" (click)="dismissNotificationSetup()">
+            ✕
+          </button>
+        </div>
       </div>
     </div>
 

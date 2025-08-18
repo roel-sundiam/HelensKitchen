@@ -26,8 +26,12 @@ const {
   AnalyticsEvent,
   Ingredient,
   MenuItemIngredient,
-  StockMovement
+  StockMovement,
+  PushSubscription
 } = require('./models');
+
+// Import web-push for notifications
+const webpush = require('web-push');
 
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
@@ -73,6 +77,9 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 const corsOptions = {
   origin: [
     'http://localhost:4200',
+    'http://localhost:4201',
+    'http://192.168.100.39:4200',
+    'http://192.168.100.39:4201',
     'https://helens-kitchen.netlify.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -95,6 +102,18 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'helens_kitchen_jwt_secret_2024';
+
+// Web Push Configuration
+const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY || 'BAWpbBfOskTCAe68py4ggqmO4aotWkPgGn-yNrM6jJjbBj_5ipTFytgWtOalI8XgDJwGBnxeDL8q0d_3LAbKDpw';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || 'zzt-WUL3-pm-ShUPJWInhWmPPKGPR4OFOVQNVO7JaPI';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'mailto:admin@helenskitchen.ph';
+
+// Configure web-push
+webpush.setVapidDetails(
+  VAPID_SUBJECT,
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
 
 // Initialize database connection and server
 async function initServer() {
@@ -1582,6 +1601,163 @@ async function initServer() {
       }
     });
 
+    // ========== PUSH NOTIFICATION ENDPOINTS ==========
+
+    // GET /api/admin/push/vapid-public-key - Get VAPID public key for client
+    app.get("/api/admin/push/vapid-public-key", requirePermission('orders.view'), (req, res) => {
+      res.json({ publicKey: VAPID_PUBLIC_KEY });
+    });
+
+    // POST /api/admin/push/subscribe - Subscribe to push notifications
+    app.post("/api/admin/push/subscribe", requirePermission('orders.view'), async (req, res) => {
+      try {
+        const { subscription } = req.body;
+        const adminId = req.adminUser.userId;
+
+        if (!subscription || !subscription.endpoint || !subscription.keys) {
+          return res.status(400).json({ error: "Invalid subscription object" });
+        }
+
+        // Save or update subscription
+        await PushSubscription.findOneAndUpdate(
+          { 
+            admin_id: adminId, 
+            endpoint: subscription.endpoint 
+          },
+          {
+            admin_id: adminId,
+            endpoint: subscription.endpoint,
+            keys: {
+              p256dh: subscription.keys.p256dh,
+              auth: subscription.keys.auth
+            },
+            user_agent: req.get('User-Agent'),
+            is_active: true,
+            last_used: new Date()
+          },
+          { upsert: true, new: true }
+        );
+
+        console.log(`Push subscription saved for admin ${req.adminUser.username}`);
+        res.json({ message: "Subscription saved successfully" });
+
+      } catch (error) {
+        console.error('Error saving push subscription:', error);
+        res.status(500).json({ error: "Failed to save subscription" });
+      }
+    });
+
+    // DELETE /api/admin/push/unsubscribe - Unsubscribe from push notifications
+    app.delete("/api/admin/push/unsubscribe", requirePermission('orders.view'), async (req, res) => {
+      try {
+        const { endpoint } = req.body;
+        const adminId = req.adminUser.userId;
+
+        if (!endpoint) {
+          return res.status(400).json({ error: "Endpoint is required" });
+        }
+
+        await PushSubscription.findOneAndUpdate(
+          { admin_id: adminId, endpoint: endpoint },
+          { is_active: false }
+        );
+
+        console.log(`Push subscription deactivated for admin ${req.adminUser.username}`);
+        res.json({ message: "Unsubscribed successfully" });
+
+      } catch (error) {
+        console.error('Error unsubscribing from push notifications:', error);
+        res.status(500).json({ error: "Failed to unsubscribe" });
+      }
+    });
+
+    // GET /api/admin/orders/unread-count - Get count of unread orders for badge
+    app.get("/api/admin/orders/unread-count", requirePermission('orders.view'), async (req, res) => {
+      try {
+        // Count orders with status 'New' as unread
+        const unreadCount = await Order.countDocuments({ 
+          status: 'New',
+          payment_status: 'Pending' 
+        });
+
+        res.json({ count: unreadCount });
+      } catch (error) {
+        console.error('Error getting unread count:', error);
+        res.status(500).json({ error: "Failed to get unread count" });
+      }
+    });
+
+    // Helper function to send push notifications to all admin subscriptions
+    async function sendPushNotification(title, body, data = {}) {
+      try {
+        // Get all active admin subscriptions
+        const subscriptions = await PushSubscription.find({ is_active: true })
+          .populate('admin_id', 'username');
+
+        if (subscriptions.length === 0) {
+          console.log('No active push subscriptions found');
+          return;
+        }
+
+        const payload = JSON.stringify({
+          title: title,
+          body: body,
+          icon: '/icons/icon-192x192.png',
+          badge: '/icons/badge-72x72.png',
+          tag: 'new-order',
+          requireInteraction: true,
+          data: data,
+          actions: [
+            {
+              action: 'view-orders',
+              title: 'View Orders',
+              icon: '/icons/icon-192x192.png'
+            },
+            {
+              action: 'dismiss',
+              title: 'Dismiss',
+              icon: '/icons/icon-192x192.png'
+            }
+          ]
+        });
+
+        const promises = subscriptions.map(async (sub) => {
+          try {
+            await webpush.sendNotification({
+              endpoint: sub.endpoint,
+              keys: {
+                p256dh: sub.keys.p256dh,
+                auth: sub.keys.auth
+              }
+            }, payload);
+
+            // Update last_used timestamp
+            await PushSubscription.findByIdAndUpdate(sub._id, { 
+              last_used: new Date() 
+            });
+
+            console.log(`Push notification sent to ${sub.admin_id.username}`);
+          } catch (error) {
+            console.error(`Failed to send push notification to ${sub.admin_id.username}:`, error);
+            
+            // If subscription is invalid (410 status), deactivate it
+            if (error.statusCode === 410) {
+              await PushSubscription.findByIdAndUpdate(sub._id, { 
+                is_active: false 
+              });
+              console.log(`Deactivated invalid subscription for ${sub.admin_id.username}`);
+            }
+          }
+        });
+
+        await Promise.all(promises);
+        console.log(`Push notifications sent to ${subscriptions.length} admin(s)`);
+
+      } catch (error) {
+        console.error('Error sending push notifications:', error);
+      }
+    }
+
     // POST /api/orders - Submit new order
     app.post("/api/orders", async (req, res) => {
       const { customer_name, phone, delivery_option, address, plus_code, payment_method, requested_delivery, items, total_price, delivery_fee, delivery_fee_status, quotation_id } = req.body;
@@ -1612,6 +1788,29 @@ async function initServer() {
         });
 
         console.log('Order created successfully:', order._id);
+        
+        // Send push notification to all admin users
+        try {
+          const unreadCount = await Order.countDocuments({ 
+            status: 'New',
+            payment_status: 'Pending' 
+          });
+          
+          await sendPushNotification(
+            'New Order Received!',
+            `Order from ${customer_name} - ₱${total_price}`,
+            {
+              orderId: order._id.toString(),
+              customerName: customer_name,
+              totalPrice: total_price,
+              badgeCount: unreadCount,
+              url: '/admin/orders'
+            }
+          );
+        } catch (notificationError) {
+          console.error('Error sending push notification for new order:', notificationError);
+        }
+        
         res.json({ 
           message: "Order submitted successfully", 
           orderId: order._id 
