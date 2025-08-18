@@ -301,13 +301,20 @@ export class NotificationService {
       }
 
       const headers = this.authService.getAuthHeaders();
-      const response = await this.http.get<{count: number}>(`${environment.apiUrl}/admin/orders/unread-count`, { headers }).toPromise();
+      const response = await this.http.get<{count: number; warning?: string}>(`${environment.apiUrl}/admin/orders/unread-count`, { headers }).toPromise();
       
       if (response) {
+        if (response.warning) {
+          console.warn('Badge count warning:', response.warning);
+        }
         await this.updateBadgeCount(response.count);
       }
     } catch (error) {
       console.error('Error loading badge count:', error);
+      
+      // Silently handle the error by setting badge count to 0
+      // This prevents the error from disrupting the user experience
+      await this.updateBadgeCount(0);
     }
   }
 

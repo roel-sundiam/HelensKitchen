@@ -60,8 +60,40 @@
 /* Header Actions */
 .header-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.order-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.add-order-btn {
+  background: linear-gradient(135deg, #10B981, #065F46);
+  color: #FFFFFF;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  z-index: 10;
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.add-order-btn:hover {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
 }
 
 .notification-controls {
@@ -1082,5 +1114,308 @@ td select:focus-visible {
   
   .cancel-btn, .confirm-btn {
     width: 100%;
+  }
+}
+
+/* ========== ADD ORDER MODAL STYLES ========== */
+.add-order-modal {
+  background: #2D2D2D;
+  border-radius: 16px;
+  width: 95%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-order-modal .modal-header {
+  background: linear-gradient(135deg, #10B981, #065F46);
+  color: #FFFFFF;
+  padding: 1.5rem 2rem;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.add-order-modal .modal-header h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.add-order-modal .modal-body {
+  padding: 2rem;
+  color: #FFFFFF;
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.form-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.form-section h4 {
+  margin: 0 0 1rem 0;
+  color: #10B981;
+  font-size: 1.1rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-group label {
+  color: #E5E5E7;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-input, .form-select {
+  background: #1C1C1E;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  color: #FFFFFF;
+  padding: 0.75rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+.form-input:focus, .form-select:focus {
+  outline: none;
+  border-color: #10B981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.form-input::placeholder {
+  color: #8E8E93;
+}
+
+.quantity-input {
+  max-width: 100px;
+}
+
+.error-message {
+  color: #FF6B6B;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+}
+
+.radio-group {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 6px;
+  transition: background-color 0.3s ease;
+}
+
+.radio-option:hover {
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.radio-option input[type="radio"] {
+  accent-color: #10B981;
+}
+
+.menu-item-selection {
+  background: rgba(16, 185, 129, 0.05);
+  padding: 1.5rem;
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.add-item-btn {
+  background: #10B981;
+  color: #FFFFFF;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: end;
+}
+
+.add-item-btn:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.add-item-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.order-items-list {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: rgba(16, 185, 129, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.order-items-list h5 {
+  margin: 0 0 1rem 0;
+  color: #10B981;
+  font-weight: 600;
+}
+
+.order-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: #1C1C1E;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.order-item:last-child {
+  margin-bottom: 0;
+}
+
+.item-details {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-grow: 1;
+}
+
+.item-name {
+  font-weight: 600;
+  color: #FFFFFF;
+}
+
+.item-variant {
+  color: #8E8E93;
+  font-size: 0.9rem;
+}
+
+.item-quantity {
+  color: #10B981;
+  font-weight: 500;
+}
+
+.item-price {
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.remove-item-btn {
+  background: #EF4444;
+  color: #FFFFFF;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.9rem;
+}
+
+.remove-item-btn:hover {
+  background: #DC2626;
+  transform: scale(1.05);
+}
+
+.items-subtotal {
+  text-align: right;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  color: #10B981;
+  font-size: 1.1rem;
+}
+
+.total-section {
+  background: rgba(16, 185, 129, 0.1);
+  padding: 1.5rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+}
+
+.total-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.total-line {
+  display: flex;
+  justify-content: space-between;
+  color: #E5E5E7;
+}
+
+.total-final {
+  padding-top: 0.5rem;
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  color: #10B981 !important;
+  font-size: 1.2rem;
+}
+
+/* Mobile Responsiveness for Add Order Modal */
+@media (max-width: 768px) {
+  .add-order-modal {
+    width: 98%;
+    max-height: 95vh;
+    margin: 1rem;
+  }
+  
+  .add-order-modal .modal-body {
+    padding: 1rem;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .radio-group {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .item-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .total-line {
+    font-size: 0.9rem;
+  }
+  
+  .total-final {
+    font-size: 1.1rem;
   }
 }

@@ -9,6 +9,7 @@ import { NotificationService } from '../services/notification.service';
 import { ConfirmationModalComponent } from '../shared/confirmation-modal.component';
 import { NotificationModalComponent, NotificationType } from '../shared/notification-modal.component';
 import { OrderDetailsModalComponent } from '../shared/order-details-modal.component';
+import { MenuService, MenuItem } from '../menu/menu.service';
 import { environment } from '../../environments/environment';
 
 interface Order {
@@ -53,6 +54,22 @@ interface OrderDetails {
   payment_status: string;
   requested_delivery: string;
   created_at: string;
+  items: OrderItem[];
+}
+
+interface NewOrder {
+  customer_name: string;
+  phone: string;
+  delivery_option: string;
+  address: string;
+  plus_code?: string;
+  payment_method: string;
+  total_price: number;
+  delivery_fee: number;
+  delivery_fee_status: string;
+  status: string;
+  payment_status: string;
+  requested_delivery: string;
   items: OrderItem[];
 }
 
@@ -102,6 +119,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   orders: Order[] = [];
   filterStatus = '';
   filterPaymentStatus = '';
+  private isInitialLoad = true; // Track if this is the first load
 
   statuses = ['New', 'Processing', 'Delivered', 'Cancelled'];
   paymentStatuses = ['Pending', 'Confirmed'];
@@ -135,6 +153,32 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   // Delete order state
   orderToDelete: Order | null = null;
 
+  // Manual Order Entry modal states
+  showAddOrderModal = false;
+  submittingOrder = false;
+  menuItems: MenuItem[] = [];
+  selectedMenuItemId: string = '';
+  selectedMenuItem: MenuItem | null = null;
+  selectedVariantId: string = '';
+  selectedVariant: any = null;
+  selectedQuantity: number = 1;
+
+  newOrder: NewOrder = {
+    customer_name: '',
+    phone: '',
+    delivery_option: 'delivery',
+    address: '',
+    plus_code: '',
+    payment_method: '',
+    total_price: 0,
+    delivery_fee: 0,
+    delivery_fee_status: 'pending',
+    status: 'New',
+    payment_status: 'Pending',
+    requested_delivery: '',
+    items: []
+  };
+
   // Notification-related properties
   badgeCount = 0;
   notificationPermission: NotificationPermission = 'default';
@@ -145,7 +189,8 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   constructor(
     private http: HttpClient,
     public authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private menuService: MenuService
   ) {}
 
   ngOnInit() {
@@ -205,16 +250,22 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, headers }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
-        // Filter out delivered and cancelled orders unless specific filters are applied
+        // Only filter out delivered and cancelled orders on initial load
+        // If user has interacted with filters (even selecting "All"), show all records
         let filteredData = data;
-        if (!this.filterStatus && !this.filterPaymentStatus) {
-          // On initial load (no filters), exclude Delivered and Cancelled orders
+        if (this.isInitialLoad && !this.filterStatus && !this.filterPaymentStatus) {
+          // On initial load only (no user interaction), exclude Delivered and Cancelled orders
           filteredData = data.filter(order => 
             order.status !== 'Delivered' && order.status !== 'Cancelled'
           );
-          console.log('Filtered out delivered/cancelled orders:', filteredData);
+          console.log('Initial load: Filtered out delivered/cancelled orders:', filteredData);
+        } else {
+          console.log('User has selected filters: Showing all matching records');
         }
         this.orders = filteredData;
+        
+        // Mark that initial load is complete
+        this.isInitialLoad = false;
         // Initialize status tracking for all orders
         this.originalPaymentStatuses = {};
         this.originalStatuses = {};
@@ -693,6 +744,234 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ========== MANUAL ORDER ENTRY METHODS ==========
+
+  async openAddOrderModal() {
+    this.showAddOrderModal = true;
+    this.resetNewOrderForm();
+    
+    // Load menu items if not already loaded
+    if (this.menuItems.length === 0) {
+      try {
+        this.menuItems = await this.menuService.getMenuItems().toPromise() || [];
+      } catch (error) {
+        console.error('Failed to load menu items:', error);
+        this.showNotification('error', 'Loading Error', 'Failed to load menu items.');
+      }
+    }
+  }
+
+  closeAddOrderModal() {
+    this.showAddOrderModal = false;
+    this.resetNewOrderForm();
+  }
+
+  onAddOrderModalOverlayClick(event: Event) {
+    if (event.target === event.currentTarget) {
+      this.closeAddOrderModal();
+    }
+  }
+
+  resetNewOrderForm() {
+    this.newOrder = {
+      customer_name: '',
+      phone: '',
+      delivery_option: 'delivery',
+      address: '',
+      plus_code: '',
+      payment_method: '',
+      total_price: 0,
+      delivery_fee: 0,
+      delivery_fee_status: 'pending',
+      status: 'New',
+      payment_status: 'Pending',
+      requested_delivery: '',
+      items: []
+    };
+    this.selectedMenuItemId = '';
+    this.selectedMenuItem = null;
+    this.selectedVariantId = '';
+    this.selectedVariant = null;
+    this.selectedQuantity = 1;
+    this.submittingOrder = false;
+  }
+
+  onDeliveryOptionChange() {
+    // Clear address when switching to pickup
+    if (this.newOrder.delivery_option === 'pickup') {
+      this.newOrder.address = '';
+      this.newOrder.plus_code = '';
+      this.newOrder.delivery_fee = 0;
+      this.newOrder.delivery_fee_status = 'not_applicable';
+    } else {
+      this.newOrder.delivery_fee_status = 'pending';
+    }
+    this.calculateTotal();
+  }
+
+  onMenuItemChange() {
+    this.selectedMenuItem = this.menuItems.find(item => item.id.toString() === this.selectedMenuItemId) || null;
+    this.selectedVariantId = '';
+    this.selectedVariant = null;
+  }
+
+  onVariantChange() {
+    if (this.selectedMenuItem) {
+      this.selectedVariant = this.selectedMenuItem.variants.find(variant => variant.id.toString() === this.selectedVariantId) || null;
+    }
+  }
+
+  addItemToOrder() {
+    if (!this.selectedMenuItem || !this.selectedVariant || this.selectedQuantity < 1) {
+      return;
+    }
+
+    // Check if item with same variant already exists
+    const existingItemIndex = this.newOrder.items.findIndex(item => 
+      item.menu_item_id === this.selectedMenuItem!.id.toString() && 
+      item.variant_name === this.selectedVariant!.name
+    );
+
+    if (existingItemIndex > -1) {
+      // Update quantity of existing item
+      this.newOrder.items[existingItemIndex].quantity += this.selectedQuantity;
+    } else {
+      // Add new item
+      const newItem: OrderItem = {
+        menu_item_id: this.selectedMenuItem.id.toString(),
+        name: this.selectedMenuItem.name,
+        description: this.selectedMenuItem.description,
+        image_url: this.selectedMenuItem.image_url,
+        variant_name: this.selectedVariant.name,
+        quantity: this.selectedQuantity,
+        price: this.selectedVariant.price
+      };
+      this.newOrder.items.push(newItem);
+    }
+
+    // Reset selection
+    this.selectedMenuItemId = '';
+    this.selectedMenuItem = null;
+    this.selectedVariantId = '';
+    this.selectedVariant = null;
+    this.selectedQuantity = 1;
+
+    this.calculateTotal();
+  }
+
+  removeItemFromOrder(index: number) {
+    this.newOrder.items.splice(index, 1);
+    this.calculateTotal();
+  }
+
+  getItemsSubtotal(): number {
+    return this.newOrder.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+  }
+
+  getFinalTotal(): number {
+    const itemsTotal = this.getItemsSubtotal();
+    const deliveryFee = this.newOrder.delivery_option === 'delivery' ? (this.newOrder.delivery_fee || 0) : 0;
+    return itemsTotal + deliveryFee;
+  }
+
+  calculateTotal() {
+    this.newOrder.total_price = this.getFinalTotal();
+  }
+
+  async submitManualOrder() {
+    // Validate required fields
+    if (!this.newOrder.customer_name.trim()) {
+      this.showNotification('error', 'Validation Error', 'Customer name is required.');
+      return;
+    }
+
+    if (!this.newOrder.phone.trim()) {
+      this.showNotification('error', 'Validation Error', 'Phone number is required.');
+      return;
+    }
+
+    if (!this.newOrder.payment_method) {
+      this.showNotification('error', 'Validation Error', 'Payment method is required.');
+      return;
+    }
+
+    if (!this.newOrder.requested_delivery) {
+      this.showNotification('error', 'Validation Error', 'Delivery/pickup date is required.');
+      return;
+    }
+
+    if (this.newOrder.delivery_option === 'delivery' && !this.newOrder.address.trim()) {
+      this.showNotification('error', 'Validation Error', 'Address is required for delivery orders.');
+      return;
+    }
+
+    if (this.newOrder.items.length === 0) {
+      this.showNotification('error', 'Validation Error', 'Please add at least one item to the order.');
+      return;
+    }
+
+    this.submittingOrder = true;
+
+    let orderData: any;
+
+    try {
+      // Prepare order data for API
+      orderData = {
+        customer_name: this.newOrder.customer_name,
+        phone: this.newOrder.phone,
+        delivery_option: this.newOrder.delivery_option,
+        // For pickup orders, use a default address to satisfy backend validation
+        address: this.newOrder.delivery_option === 'pickup' ? 'Pickup - No address required' : this.newOrder.address,
+        plus_code: this.newOrder.plus_code || '',
+        payment_method: this.newOrder.payment_method,
+        total_price: this.getFinalTotal(),
+        delivery_fee: this.newOrder.delivery_option === 'delivery' ? (this.newOrder.delivery_fee || 0) : 0,
+        delivery_fee_status: this.newOrder.delivery_option === 'delivery' ? 
+          (this.newOrder.delivery_fee > 0 ? 'set' : 'pending') : 'not_applicable',
+        requested_delivery: new Date(this.newOrder.requested_delivery).toISOString(),
+        items: this.newOrder.items.map(item => ({
+          menu_item_id: parseInt(item.menu_item_id),
+          variant_name: item.variant_name,
+          quantity: item.quantity,
+          price: item.price
+        }))
+      };
+
+      // Debug: log the order data being sent
+      console.log('Sending order data:', orderData);
+
+      const response = await this.http.post(`${environment.apiUrl}/orders`, orderData).toPromise();
+      
+      this.showNotification('success', 'Order Created', 
+        `Order has been successfully created for ${this.newOrder.customer_name}.`);
+      
+      this.closeAddOrderModal();
+      this.loadOrders(); // Refresh the orders list
+
+    } catch (error: any) {
+      console.error('Failed to create manual order:', error);
+      console.error('Order data that failed:', orderData);
+      
+      let errorMessage = 'Failed to create order. Please try again.';
+      let errorDetails = '';
+      
+      if (error.error && error.error.error) {
+        errorMessage = error.error.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      // Add more detailed error information
+      if (error.status) {
+        errorDetails = `Status: ${error.status}\nURL: ${error.url}\nResponse: ${JSON.stringify(error.error, null, 2)}`;
+      }
+      
+      this.showNotification('error', 'Order Creation Failed', errorMessage, errorDetails);
+    } finally {
+      this.submittingOrder = false;
+    }
+  }
+
   // ========== NOTIFICATION METHODS ==========
 
   /**
@@ -825,49 +1104,4 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     this.showNotificationSetup = false;
   }
 
-  /**
-   * Show debug information for troubleshooting
-   */
-  showDebugInfo() {
-    const debugInfo = `
-=== NOTIFICATION DEBUG INFO ===
-
-Browser Support:
-- Notification API: ${'Notification' in window}
-- Service Worker: ${'serviceWorker' in navigator}
-- Push Manager: ${'PushManager' in window}
-
-Current Status:
-- Permission: ${Notification.permission}
-- Badge Count: ${this.badgeCount}
-- Is Subscribed: ${this.isSubscribedToNotifications}
-- Notifications Enabled: ${this.notificationsEnabled}
-
-Browser Info:
-- User Agent: ${navigator.userAgent}
-- Platform: ${navigator.platform}
-- Is PWA: ${window.matchMedia('(display-mode: standalone)').matches}
-- Current URL: ${window.location.href}
-
-Environment:
-- API URL: ${environment.apiUrl}
-- Is Authenticated: ${this.authService.isLoggedIn()}
-
-Service Worker:
-- Controller: ${navigator.serviceWorker?.controller ? 'Active' : 'None'}
-- Ready State: ${navigator.serviceWorker ? 'Available' : 'Not Available'}
-    `;
-
-    console.log(debugInfo);
-    
-    this.showNotification('info', 'Debug Information', 
-      'Debug info has been logged to the browser console. ' +
-      'Open Safari Developer Tools to view the details.\n\n' +
-      'Key info:\n' +
-      `• Notification API: ${'Notification' in window ? 'Supported' : 'Not Supported'}\n` +
-      `• Current Permission: ${Notification.permission}\n` +
-      `• Is PWA: ${window.matchMedia('(display-mode: standalone)').matches ? 'Yes' : 'No'}\n` +
-      `• Service Worker: ${navigator.serviceWorker?.controller ? 'Active' : 'None'}`
-    );
-  }
 }

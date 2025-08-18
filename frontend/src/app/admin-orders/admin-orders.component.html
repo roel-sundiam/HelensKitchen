@@ -5,6 +5,13 @@
         <span class="badge-counter" *ngIf="badgeCount > 0">{{badgeCount}}</span>
       </h2>
       <div class="header-actions">
+        <div class="order-actions">
+          <button class="add-order-btn" 
+                  (click)="openAddOrderModal()"
+                  title="Add manual order">
+            ➕ Add Order
+          </button>
+        </div>
         <div class="notification-controls">
           <button class="notification-btn" 
                   *ngIf="notificationsEnabled" 
@@ -46,10 +53,6 @@
                   *ngIf="notificationsEnabled" 
                   (click)="disableNotifications()">
             Disable
-          </button>
-          <button class="btn-secondary" 
-                  (click)="showDebugInfo()">
-            Debug Info
           </button>
           <button class="btn-text" (click)="dismissNotificationSetup()">
             ✕
@@ -272,6 +275,336 @@
         <div class="button-group">
           <button type="button" class="cancel-btn" (click)="closeDeliveryFeeModal()">Cancel</button>
           <button type="submit" class="confirm-btn" [disabled]="deliveryFeeForm.invalid">Set Fee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Manual Order Entry Modal -->
+<div class="modal-overlay" *ngIf="showAddOrderModal" (click)="onAddOrderModalOverlayClick($event)">
+  <div class="add-order-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>➕ Add Manual Order</h3>
+      <button class="close-btn" (click)="closeAddOrderModal()" type="button">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <form (ngSubmit)="submitManualOrder()" #manualOrderForm="ngForm">
+        <!-- Customer Information -->
+        <div class="form-section">
+          <h4>Customer Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="customerName">Customer Name *</label>
+              <input 
+                type="text" 
+                id="customerName"
+                name="customerName"
+                [(ngModel)]="newOrder.customer_name" 
+                required 
+                class="form-input"
+                placeholder="Enter customer name"
+                #customerNameField="ngModel"
+              >
+              <div class="error-message" *ngIf="customerNameField.invalid && customerNameField.touched">
+                Customer name is required
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="customerPhone">Phone Number *</label>
+              <input 
+                type="tel" 
+                id="customerPhone"
+                name="customerPhone"
+                [(ngModel)]="newOrder.phone" 
+                required 
+                class="form-input"
+                placeholder="Enter phone number"
+                #customerPhoneField="ngModel"
+              >
+              <div class="error-message" *ngIf="customerPhoneField.invalid && customerPhoneField.touched">
+                Phone number is required
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Order Type *</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  name="deliveryOption" 
+                  value="delivery" 
+                  [(ngModel)]="newOrder.delivery_option"
+                  (change)="onDeliveryOptionChange()"
+                >
+                🚚 Delivery
+              </label>
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  name="deliveryOption" 
+                  value="pickup" 
+                  [(ngModel)]="newOrder.delivery_option"
+                  (change)="onDeliveryOptionChange()"
+                >
+                🏪 Pickup
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Details (only shown for delivery) -->
+        <div class="form-section" *ngIf="newOrder.delivery_option === 'delivery'">
+          <h4>Delivery Details</h4>
+          <div class="form-group">
+            <label for="deliveryAddress">Address *</label>
+            <textarea 
+              id="deliveryAddress"
+              name="deliveryAddress"
+              [(ngModel)]="newOrder.address" 
+              [required]="newOrder.delivery_option === 'delivery'"
+              class="form-input"
+              placeholder="Enter delivery address"
+              rows="3"
+              #deliveryAddressField="ngModel"
+            ></textarea>
+            <div class="error-message" *ngIf="deliveryAddressField.invalid && deliveryAddressField.touched">
+              Address is required for delivery orders
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="plusCode">Plus Code (Optional)</label>
+            <input 
+              type="text" 
+              id="plusCode"
+              name="plusCode"
+              [(ngModel)]="newOrder.plus_code" 
+              class="form-input"
+              placeholder="Enter Plus Code if available"
+            >
+          </div>
+          
+          <div class="form-group">
+            <label for="deliveryDate">Delivery Date & Time *</label>
+            <input 
+              type="datetime-local" 
+              id="deliveryDate"
+              name="deliveryDate"
+              [(ngModel)]="newOrder.requested_delivery" 
+              required 
+              class="form-input"
+              #deliveryDateField="ngModel"
+            >
+            <div class="error-message" *ngIf="deliveryDateField.invalid && deliveryDateField.touched">
+              Delivery date and time is required
+            </div>
+          </div>
+        </div>
+
+        <!-- Pickup Details (only shown for pickup) -->
+        <div class="form-section" *ngIf="newOrder.delivery_option === 'pickup'">
+          <h4>Pickup Details</h4>
+          <div class="form-group">
+            <label for="pickupDate">Pickup Date & Time *</label>
+            <input 
+              type="datetime-local" 
+              id="pickupDate"
+              name="pickupDate"
+              [(ngModel)]="newOrder.requested_delivery" 
+              required 
+              class="form-input"
+              #pickupDateField="ngModel"
+            >
+            <div class="error-message" *ngIf="pickupDateField.invalid && pickupDateField.touched">
+              Pickup date and time is required
+            </div>
+          </div>
+        </div>
+
+        <!-- Menu Items Selection -->
+        <div class="form-section">
+          <h4>Menu Items</h4>
+          <div class="menu-item-selection">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="menuItemSelect">Select Item</label>
+                <select 
+                  id="menuItemSelect"
+                  [(ngModel)]="selectedMenuItemId" 
+                  (change)="onMenuItemChange()"
+                  name="menuItemSelect"
+                  class="form-select"
+                >
+                  <option value="">Choose a menu item</option>
+                  <option *ngFor="let item of menuItems" [value]="item.id">
+                    {{ item.name }} - ₱{{ item.base_price.toFixed(2) }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="form-group" *ngIf="selectedMenuItem">
+                <label for="variantSelect">Select Variant</label>
+                <select 
+                  id="variantSelect"
+                  [(ngModel)]="selectedVariantId" 
+                  (change)="onVariantChange()"
+                  name="variantSelect"
+                  class="form-select"
+                >
+                  <option value="">Choose variant</option>
+                  <option *ngFor="let variant of selectedMenuItem.variants" [value]="variant.id">
+                    {{ variant.name }} - ₱{{ variant.price.toFixed(2) }}
+                  </option>
+                </select>
+              </div>
+              
+              <div class="form-group" *ngIf="selectedVariant">
+                <label for="quantity">Quantity</label>
+                <input 
+                  type="number" 
+                  id="quantity"
+                  [(ngModel)]="selectedQuantity" 
+                  name="quantity"
+                  min="1"
+                  class="form-input quantity-input"
+                  placeholder="1"
+                >
+              </div>
+              
+              <div class="form-group" *ngIf="selectedVariant">
+                <label>&nbsp;</label>
+                <button 
+                  type="button" 
+                  class="add-item-btn"
+                  (click)="addItemToOrder()"
+                  [disabled]="!selectedMenuItem || !selectedVariant || selectedQuantity < 1"
+                >
+                  Add Item
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Order Items List -->
+          <div class="order-items-list" *ngIf="newOrder.items.length > 0">
+            <h5>Order Items:</h5>
+            <div class="order-item" *ngFor="let item of newOrder.items; let i = index">
+              <div class="item-details">
+                <span class="item-name">{{ item.name }}</span>
+                <span class="item-variant">{{ item.variant_name }}</span>
+                <span class="item-quantity">Qty: {{ item.quantity }}</span>
+                <span class="item-price">₱{{ (item.price * item.quantity).toFixed(2) }}</span>
+              </div>
+              <button 
+                type="button" 
+                class="remove-item-btn"
+                (click)="removeItemFromOrder(i)"
+                title="Remove item"
+              >
+                🗑️
+              </button>
+            </div>
+            <div class="items-subtotal">
+              <strong>Items Subtotal: ₱{{ getItemsSubtotal().toFixed(2) }}</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment & Final Details -->
+        <div class="form-section">
+          <h4>Payment & Order Details</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="paymentMethod">Payment Method *</label>
+              <select 
+                id="paymentMethod"
+                name="paymentMethod"
+                [(ngModel)]="newOrder.payment_method" 
+                required 
+                class="form-select"
+                #paymentMethodField="ngModel"
+              >
+                <option value="">Select payment method</option>
+                <option value="Cash">Cash</option>
+                <option value="GCash">GCash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Credit Card">Credit Card</option>
+              </select>
+              <div class="error-message" *ngIf="paymentMethodField.invalid && paymentMethodField.touched">
+                Payment method is required
+              </div>
+            </div>
+            
+            <div class="form-group" *ngIf="newOrder.delivery_option === 'delivery'">
+              <label for="deliveryFee">Delivery Fee (₱)</label>
+              <input 
+                type="number" 
+                id="deliveryFee"
+                name="deliveryFee"
+                [(ngModel)]="newOrder.delivery_fee" 
+                min="0" 
+                step="0.01" 
+                class="form-input"
+                placeholder="0.00"
+                (input)="calculateTotal()"
+              >
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="orderStatus">Order Status</label>
+              <select 
+                id="orderStatus"
+                name="orderStatus"
+                [(ngModel)]="newOrder.status" 
+                class="form-select"
+              >
+                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="paymentStatus">Payment Status</label>
+              <select 
+                id="paymentStatus"
+                name="paymentStatus"
+                [(ngModel)]="newOrder.payment_status" 
+                class="form-select"
+              >
+                <option *ngFor="let status of paymentStatuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="total-section">
+            <div class="total-breakdown">
+              <div class="total-line">Items: ₱{{ getItemsSubtotal().toFixed(2) }}</div>
+              <div class="total-line" *ngIf="newOrder.delivery_option === 'delivery'">
+                Delivery: ₱{{ (newOrder.delivery_fee || 0).toFixed(2) }}
+              </div>
+              <div class="total-line total-final">
+                <strong>Total: ₱{{ getFinalTotal().toFixed(2) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="button-group">
+          <button type="button" class="cancel-btn" (click)="closeAddOrderModal()">Cancel</button>
+          <button 
+            type="submit" 
+            class="confirm-btn" 
+            [disabled]="manualOrderForm.invalid || newOrder.items.length === 0 || submittingOrder"
+          >
+            <span *ngIf="!submittingOrder">Create Order</span>
+            <span *ngIf="submittingOrder">Creating...</span>
+          </button>
         </div>
       </form>
     </div>

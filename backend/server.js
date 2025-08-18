@@ -971,6 +971,35 @@ async function initServer() {
       }
     });
 
+    // GET /api/admin/orders/unread-count - Get count of unread orders for badge
+    app.get("/api/admin/orders/unread-count", requirePermission('orders.view'), async (req, res) => {
+      try {
+        console.log('Getting unread count for admin notifications...');
+        
+        // Check if Order model is available
+        if (!Order) {
+          console.error('Order model is not available');
+          return res.status(500).json({ error: "Order model not available" });
+        }
+
+        // Count orders with status 'New' as unread
+        const unreadCount = await Order.countDocuments({ 
+          status: 'New',
+          payment_status: 'Pending' 
+        });
+
+        console.log(`Found ${unreadCount} unread orders`);
+        res.json({ count: unreadCount });
+      } catch (error) {
+        console.error('Error getting unread count:', error);
+        console.error('Error details:', error.stack);
+        
+        // Return a fallback count of 0 instead of throwing an error
+        console.log('Returning fallback count of 0 due to error');
+        res.json({ count: 0, warning: 'Could not fetch accurate count' });
+      }
+    });
+
     // GET /api/admin/orders/:id - Get detailed order information for admin
     app.get("/api/admin/orders/:id", requirePermission('orders.view'), async (req, res) => {
       const { id } = req.params;
@@ -1671,21 +1700,6 @@ async function initServer() {
       }
     });
 
-    // GET /api/admin/orders/unread-count - Get count of unread orders for badge
-    app.get("/api/admin/orders/unread-count", requirePermission('orders.view'), async (req, res) => {
-      try {
-        // Count orders with status 'New' as unread
-        const unreadCount = await Order.countDocuments({ 
-          status: 'New',
-          payment_status: 'Pending' 
-        });
-
-        res.json({ count: unreadCount });
-      } catch (error) {
-        console.error('Error getting unread count:', error);
-        res.status(500).json({ error: "Failed to get unread count" });
-      }
-    });
 
     // Helper function to send push notifications to all admin subscriptions
     async function sendPushNotification(title, body, data = {}) {
