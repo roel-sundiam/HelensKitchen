@@ -6,13 +6,40 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   
-  <!-- PWA Manifest - Dynamically set based on route -->
-  <link rel="manifest" href="manifest.json" id="manifest-link">
+  <!-- Dynamic PWA Manifest Selection - Must run before manifest is processed -->
+  <script>
+    // Set appropriate manifest based on current route (runs immediately in head)
+    (function() {
+      const currentPath = window.location.pathname;
+      const isAdminRoute = currentPath.startsWith('/admin');
+      
+      console.log('PWA Manifest Selection:', {
+        currentPath: currentPath,
+        isAdminRoute: isAdminRoute,
+        userAgent: navigator.userAgent
+      });
+      
+      if (isAdminRoute) {
+        // Set admin manifest and meta tags
+        console.log('Setting admin manifest: admin-manifest.json');
+        document.write('<link rel="manifest" href="admin-manifest.json" id="manifest-link">');
+        document.write('<meta name="title" content="Helen\'s Kitchen Admin">');
+        document.write('<meta name="description" content="Helen\'s Kitchen Admin - Manage orders, revenue, and business operations">');
+        document.write('<meta name="keywords" content="restaurant admin, order management, business management, Helen\'s Kitchen">');
+        document.title = 'Helen\'s Kitchen Admin';
+      } else {
+        // Set customer manifest and meta tags
+        console.log('Setting customer manifest: manifest.json');
+        document.write('<link rel="manifest" href="manifest.json" id="manifest-link">');
+        document.write('<meta name="title" content="Helen\'s Kitchen - Order Online">');
+        document.write('<meta name="description" content="Order delicious burgers and Charlie Chan pasta from Helen\'s Kitchen. Fast delivery in Pampanga area.">');
+        document.write('<meta name="keywords" content="food delivery, burgers, pasta, Helen\'s Kitchen, Pampanga, order online">');
+        document.title = 'Helen\'s Kitchen - Order Online';
+      }
+    })();
+  </script>
   
-  <!-- Primary Meta Tags -->
-  <meta name="title" content="Helen's Kitchen - Order Online">
-  <meta name="description" content="Order delicious burgers and Charlie Chan pasta from Helen's Kitchen. Fast delivery in Pampanga area.">
-  <meta name="keywords" content="food delivery, burgers, pasta, Helen's Kitchen, Pampanga, order online">
+  <!-- Author meta tag -->
   <meta name="author" content="Helen's Kitchen">
   
   <!-- Favicon and Icons -->
@@ -49,9 +76,21 @@
   <meta name="msapplication-TileColor" content="#D4AF37">
   <meta name="msapplication-config" content="browserconfig.xml">
   
-  <!-- PWA Meta Tags -->
-  <meta name="application-name" content="Helen's Kitchen">
-  <meta name="mobile-web-app-title" content="Helen's Kitchen">
+  <!-- PWA Meta Tags - Dynamic based on route -->
+  <script>
+    // Set PWA meta tags dynamically
+    (function() {
+      const isAdminRoute = window.location.pathname.startsWith('/admin');
+      
+      if (isAdminRoute) {
+        document.write('<meta name="application-name" content="Helen\'s Kitchen Admin">');
+        document.write('<meta name="mobile-web-app-title" content="HK Admin">');
+      } else {
+        document.write('<meta name="application-name" content="Helen\'s Kitchen">');
+        document.write('<meta name="mobile-web-app-title" content="Helen\'s Kitchen">');
+      }
+    })();
+  </script>
   
   
   <!-- Google Fonts -->
@@ -65,32 +104,6 @@
 <body>
   <app-root></app-root>
   
-  <!-- Dynamic PWA Manifest Selection -->
-  <script>
-    // Set appropriate manifest based on current route
-    (function() {
-      const isAdminRoute = window.location.pathname.startsWith('/admin');
-      const manifestLink = document.getElementById('manifest-link');
-      
-      if (isAdminRoute) {
-        manifestLink.href = 'admin-manifest.json';
-        document.title = 'Helen\'s Kitchen Admin';
-        // Update meta description for admin
-        const metaDescription = document.querySelector('meta[name="description"]');
-        if (metaDescription) {
-          metaDescription.content = 'Helen\'s Kitchen Admin - Manage orders, revenue, and business operations';
-        }
-        // Update meta title for admin
-        const metaTitle = document.querySelector('meta[name="title"]');
-        if (metaTitle) {
-          metaTitle.content = 'Helen\'s Kitchen Admin';
-        }
-      } else {
-        manifestLink.href = 'manifest.json';
-        document.title = 'Helen\'s Kitchen - Order Online';
-      }
-    })();
-  </script>
   
   <!-- PWA Service Worker Registration -->
   <script>

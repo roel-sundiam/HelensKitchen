@@ -1,6 +1,6 @@
 {
   "name": "Helen's Kitchen Admin",
-  "short_name": "HK Admin",
+  "short_name": "Admin",
   "description": "Helen's Kitchen Admin - Manage orders, revenue, and business operations",
   "start_url": "/admin/orders",
   "display": "standalone",
