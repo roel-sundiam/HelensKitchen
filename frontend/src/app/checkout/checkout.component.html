@@ -334,16 +334,65 @@
   </div>
 
   <label>
-    Requested Delivery Date & Time:
-    <input type="datetime-local" formControlName="deliveryDateTime" />
+    Requested Delivery Date:
+    <input type="date" formControlName="deliveryDate" />
     <div
       *ngIf="
-        checkoutForm.get('deliveryDateTime')?.errors?.['invalidDate'] &&
-        checkoutForm.get('deliveryDateTime')?.touched
+        checkoutForm.get('deliveryDate')?.errors?.['invalidDate'] &&
+        checkoutForm.get('deliveryDate')?.touched
       "
       class="error-message"
     >
       Delivery must be at least 24 hours from now.
+    </div>
+  </label>
+
+  <label>
+    Requested Delivery Time:
+    <select formControlName="deliveryTime">
+      <option value="" disabled>
+        {{ getDeliveryDateValue() ? 'Select delivery time' : 'Please select a date first' }}
+      </option>
+      <option *ngFor="let time of getAvailableTimeSlots()" [value]="time">
+        {{ formatTimeForDisplay(time) }}
+      </option>
+    </select>
+    <div class="help-text">
+      <small *ngIf="getDeliveryDateValue() && isSelectedDateWeekend()">
+        🌟 Weekend hours: 8:00 AM - 8:00 PM
+      </small>
+      <small *ngIf="getDeliveryDateValue() && !isSelectedDateWeekend()">
+        📅 Weekday hours: 4:00 PM - 8:00 PM
+      </small>
+    </div>
+    <div
+      *ngIf="
+        checkoutForm.get('deliveryTime')?.errors?.['invalidTime'] &&
+        checkoutForm.get('deliveryTime')?.touched
+      "
+      class="error-message"
+    >
+      Please select a valid delivery time for the chosen date.
+    </div>
+    <div
+      *ngIf="
+        checkoutForm.get('deliveryTime')?.errors?.['invalidDateTime'] &&
+        checkoutForm.get('deliveryTime')?.touched
+      "
+      class="error-message"
+    >
+      The selected date and time must be at least 24 hours from now.
+    </div>
+    <div
+      *ngIf="
+        checkoutForm.get('deliveryTime')?.invalid &&
+        checkoutForm.get('deliveryTime')?.touched &&
+        !checkoutForm.get('deliveryTime')?.errors?.['invalidTime'] &&
+        !checkoutForm.get('deliveryTime')?.errors?.['invalidDateTime']
+      "
+      class="error-message"
+    >
+      Delivery time is required.
     </div>
   </label>
 

@@ -78,14 +78,26 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
       searchAddress: [''], // For address search
       plusCode: ['', this.validatePlusCode], // Optional Plus Code for precise location
       paymentMethod: ['', Validators.required],
-      deliveryDateTime: [
-        this.getDefaultDeliveryDateTime(),
-        [Validators.required, this.validateDeliveryDateTime.bind(this)],
+      deliveryDate: [
+        this.getDefaultDeliveryDate(),
+        [Validators.required, this.validateDeliveryDate.bind(this)],
+      ],
+      deliveryTime: [
+        '',
+        [Validators.required, this.validateDeliveryTime.bind(this)],
       ],
     });
 
     this.cartService.cart$.subscribe((items) => {
       this.cartItems = items;
+    });
+
+    // Watch for delivery date changes to reset time selection
+    this.checkoutForm.get('deliveryDate')?.valueChanges.subscribe(() => {
+      // Reset time selection when date changes since valid times depend on the day
+      this.checkoutForm.patchValue({
+        deliveryTime: ''
+      });
     });
 
     // Note: Delivery fee calculation removed - admin will set delivery fee manually after order submission
@@ -389,12 +401,12 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     );
   }
 
-  private getDefaultDeliveryDateTime(): string {
+  private getDefaultDeliveryDate(): string {
     const now = new Date();
     // Set default to 25 hours from now to ensure it passes validation
     now.setHours(now.getHours() + 25);
-    // Format for datetime-local input (YYYY-MM-DDTHH:MM)
-    return now.toISOString().slice(0, 16);
+    // Format for date input (YYYY-MM-DD)
+    return now.toISOString().slice(0, 10);
   }
 
   validatePlusCode(control: AbstractControl): ValidationErrors | null {
@@ -415,13 +427,90 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     return null;
   }
 
-  validateDeliveryDateTime(control: AbstractControl): ValidationErrors | null {
+  validateDeliveryDate(control: AbstractControl): ValidationErrors | null {
     if (!control.value) return null;
     const selectedDate = new Date(control.value);
     const now = new Date();
     // Add 24 hours to current time
-    now.setHours(now.getHours() + 24);
-    return selectedDate >= now ? null : { invalidDate: true };
+    const minDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    minDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    selectedDate.setHours(0, 0, 0, 0);
+    return selectedDate >= minDate ? null : { invalidDate: true };
+  }
+
+  validateDeliveryTime(control: AbstractControl): ValidationErrors | null {
+    if (!control.value) return null;
+    
+    const dateControl = this.checkoutForm?.get('deliveryDate');
+    if (!dateControl?.value) return null;
+    
+    const selectedDate = new Date(dateControl.value);
+    const selectedTime = control.value;
+    const validTimes = this.getValidTimeSlotsForDate(selectedDate);
+    
+    if (!validTimes.includes(selectedTime)) {
+      return { invalidTime: true };
+    }
+    
+    // Additional check: if it's within 24 hours, ensure the time is also valid
+    const now = new Date();
+    const selectedDateTime = new Date(selectedDate);
+    const [hours, minutes] = selectedTime.split(':').map(Number);
+    selectedDateTime.setHours(hours, minutes, 0, 0);
+    
+    const minDateTime = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    
+    return selectedDateTime >= minDateTime ? null : { invalidDateTime: true };
+  }
+
+  // Helper methods for delivery time validation
+  isWeekend(date: Date): boolean {
+    const day = date.getDay();
+    return day === 0 || day === 6; // 0 = Sunday, 6 = Saturday
+  }
+
+  getValidTimeSlotsForDate(date: Date): string[] {
+    if (this.isWeekend(date)) {
+      // Weekends: 8am to 8pm
+      return [
+        '08:00', '09:00', '10:00', '11:00', '12:00',
+        '13:00', '14:00', '15:00', '16:00', '17:00',
+        '18:00', '19:00', '20:00'
+      ];
+    } else {
+      // Weekdays: 4pm to 8pm
+      return ['16:00', '17:00', '18:00', '19:00', '20:00'];
+    }
+  }
+
+  getAvailableTimeSlots(): string[] {
+    const dateControl = this.checkoutForm.get('deliveryDate');
+    if (!dateControl?.value) {
+      return [];
+    }
+    const selectedDate = new Date(dateControl.value);
+    return this.getValidTimeSlotsForDate(selectedDate);
+  }
+
+  formatTimeForDisplay(time: string): string {
+    const [hours, minutes] = time.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    });
+  }
+
+  getDeliveryDateValue(): string | null {
+    return this.checkoutForm.get('deliveryDate')?.value || null;
+  }
+
+  isSelectedDateWeekend(): boolean {
+    const dateValue = this.getDeliveryDateValue();
+    if (!dateValue) return false;
+    return this.isWeekend(new Date(dateValue));
   }
 
   // Note: calculateDeliveryFee method removed - admin will set delivery fee manually
@@ -453,7 +542,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
       address: this.isPickupMode ? 'PICKUP - Helen\'s Kitchen Store' : this.checkoutForm.value.address,
       plus_code: this.isPickupMode ? '' : this.checkoutForm.value.plusCode,
       payment_method: this.checkoutForm.value.paymentMethod,
-      requested_delivery: this.checkoutForm.value.deliveryDateTime,
+      requested_delivery: this.checkoutForm.value.deliveryDate + 'T' + this.checkoutForm.value.deliveryTime + ':00',
       items: this.cartItems.map((item) => ({
         menu_item_id: item.menuItem.id,
         variant: item.variant,

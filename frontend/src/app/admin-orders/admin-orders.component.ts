@@ -1,9 +1,11 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClientModule, HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { Subscription } from 'rxjs';
 import { AuthService } from '../services/auth';
+import { NotificationService } from '../services/notification.service';
 import { ConfirmationModalComponent } from '../shared/confirmation-modal.component';
 import { NotificationModalComponent, NotificationType } from '../shared/notification-modal.component';
 import { OrderDetailsModalComponent } from '../shared/order-details-modal.component';
@@ -61,7 +63,7 @@ interface OrderDetails {
   templateUrl: './admin-orders.component.html',
   styleUrls: ['./admin-orders.component.css'],
 })
-export class AdminOrdersComponent implements OnInit {
+export class AdminOrdersComponent implements OnInit, OnDestroy {
   
   // Helper method to get datetime-local value
   getDateTimeValue(order: Order): string {
@@ -133,14 +135,60 @@ export class AdminOrdersComponent implements OnInit {
   // Delete order state
   orderToDelete: Order | null = null;
 
+  // Notification-related properties
+  badgeCount = 0;
+  notificationPermission: NotificationPermission = 'default';
+  isSubscribedToNotifications = false;
+  showNotificationSetup = false;
+  private subscriptions: Subscription[] = [];
+
   constructor(
     private http: HttpClient,
-    public authService: AuthService
+    public authService: AuthService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
+    // Initialize notification service for admin
+    this.initializeNotifications();
+    
     // Load orders with automatic filtering for delivered/cancelled on initial load
     this.loadOrders();
+  }
+
+  ngOnDestroy() {
+    // Clean up subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  private initializeNotifications() {
+    // Subscribe to badge count updates
+    const badgeCountSub = this.notificationService.badgeCount$.subscribe(count => {
+      this.badgeCount = count;
+    });
+    this.subscriptions.push(badgeCountSub);
+
+    // Subscribe to notification permission changes
+    const permissionSub = this.notificationService.notificationPermission$.subscribe(permission => {
+      this.notificationPermission = permission;
+      this.checkNotificationSetupNeeded();
+    });
+    this.subscriptions.push(permissionSub);
+
+    // Subscribe to subscription status changes
+    const subscriptionSub = this.notificationService.isSubscribed$.subscribe(isSubscribed => {
+      this.isSubscribedToNotifications = isSubscribed;
+      this.checkNotificationSetupNeeded();
+    });
+    this.subscriptions.push(subscriptionSub);
+
+    // Initialize notifications for admin
+    this.notificationService.initializeForAdmin();
+  }
+
+  private checkNotificationSetupNeeded() {
+    // Show notification setup if permissions not granted or not subscribed
+    this.showNotificationSetup = this.notificationPermission !== 'granted' || !this.isSubscribedToNotifications;
   }
 
   loadOrders() {
@@ -175,6 +223,10 @@ export class AdminOrdersComponent implements OnInit {
           this.originalStatuses[order.id] = order.status;
           this.originalDeliveryDates[order.id] = order.requested_delivery;
         });
+        
+        // Update badge count after loading orders
+        this.updateBadgeCountAfterOrdersLoaded();
+        
         this.loading = false;
       },
       error: (err) => {
@@ -639,5 +691,183 @@ export class AdminOrdersComponent implements OnInit {
         this.orderToDelete = null;
       }
     });
+  }
+
+  // ========== NOTIFICATION METHODS ==========
+
+  /**
+   * Request notification permission and subscribe to push notifications
+   */
+  async enableNotifications() {
+    try {
+      console.log('Admin: Starting notification enable process...');
+      const permission = await this.notificationService.requestNotificationPermission();
+      console.log('Admin: Permission result:', permission);
+      
+      if (permission === 'granted') {
+        console.log('Admin: Permission granted, attempting subscription...');
+        const success = await this.notificationService.subscribeToPushNotifications();
+        console.log('Admin: Subscription result:', success);
+        
+        if (success) {
+          this.showNotification('success', 'Notifications Enabled', 
+            'You will now receive push notifications for new orders on your iPhone.');
+        } else {
+          this.showNotification('error', 'Setup Failed', 
+            'Failed to set up push notifications. Please try again. Check browser console for details.');
+        }
+      } else if (permission === 'denied') {
+        this.showNotification('error', 'Permission Denied', 
+          'Notifications were blocked. Please:\n\n' +
+          '1. Close this app completely\n' +
+          '2. Open iPhone Settings → Safari → Clear History and Website Data\n' +
+          '3. Reopen this app and try again\n\n' +
+          'Or try using Chrome/Firefox instead of Safari.');
+      } else {
+        this.showNotification('warning', 'Permission Not Granted', 
+          'Notification permission was not granted. The permission dialog might not have appeared.\n\n' +
+          'Try:\n' +
+          '1. Using the installed PWA app instead of Safari\n' +
+          '2. Clearing Safari data and trying again\n' +
+          '3. Using a different browser');
+      }
+    } catch (error) {
+      console.error('Error enabling notifications:', error);
+      this.showNotification('error', 'Setup Error', 
+        'An error occurred while setting up notifications. Check the browser console for details:\n\n' + 
+        (error as any)?.message || String(error));
+    }
+  }
+
+  /**
+   * Disable push notifications
+   */
+  async disableNotifications() {
+    try {
+      const success = await this.notificationService.unsubscribeFromPushNotifications();
+      
+      if (success) {
+        this.showNotification('info', 'Notifications Disabled', 
+          'You will no longer receive push notifications for new orders.');
+      } else {
+        this.showNotification('error', 'Disable Failed', 
+          'Failed to disable push notifications. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error disabling notifications:', error);
+      this.showNotification('error', 'Disable Error', 
+        'An error occurred while disabling notifications.');
+    }
+  }
+
+  /**
+   * Refresh badge count from server
+   */
+  async refreshNotifications() {
+    try {
+      await this.notificationService.refreshBadgeCount();
+      this.showNotification('success', 'Refreshed', 'Notification count updated.');
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+      this.showNotification('error', 'Refresh Failed', 
+        'Failed to refresh notification count.');
+    }
+  }
+
+  /**
+   * Update badge count based on loaded orders
+   */
+  private updateBadgeCountAfterOrdersLoaded() {
+    // Count new orders with pending payment as unread
+    const newOrderCount = this.orders.filter(order => 
+      order.status === 'New' && order.payment_status === 'Pending'
+    ).length;
+    
+    // Update badge count if different from current
+    if (newOrderCount !== this.badgeCount) {
+      this.notificationService.updateBadgeCount(newOrderCount);
+    }
+  }
+
+  /**
+   * Mark orders as viewed (clear badge when user views orders)
+   */
+  markOrdersAsViewed() {
+    // Clear badge count when admin views the orders page
+    this.notificationService.clearBadgeCount();
+  }
+
+  /**
+   * Get notification setup help text
+   */
+  getNotificationHelpText(): string {
+    if (this.notificationPermission === 'denied') {
+      return 'Notifications are blocked. Please enable them in your browser settings.';
+    } else if (this.notificationPermission === 'default') {
+      return 'Enable notifications to get instant alerts for new orders on your iPhone.';
+    } else if (!this.isSubscribedToNotifications) {
+      return 'Finishing notification setup...';
+    }
+    return 'Notifications are enabled and working.';
+  }
+
+  /**
+   * Check if notifications are fully enabled
+   */
+  get notificationsEnabled(): boolean {
+    return this.notificationPermission === 'granted' && this.isSubscribedToNotifications;
+  }
+
+  /**
+   * Dismiss notification setup banner
+   */
+  dismissNotificationSetup() {
+    this.showNotificationSetup = false;
+  }
+
+  /**
+   * Show debug information for troubleshooting
+   */
+  showDebugInfo() {
+    const debugInfo = `
+=== NOTIFICATION DEBUG INFO ===
+
+Browser Support:
+- Notification API: ${'Notification' in window}
+- Service Worker: ${'serviceWorker' in navigator}
+- Push Manager: ${'PushManager' in window}
+
+Current Status:
+- Permission: ${Notification.permission}
+- Badge Count: ${this.badgeCount}
+- Is Subscribed: ${this.isSubscribedToNotifications}
+- Notifications Enabled: ${this.notificationsEnabled}
+
+Browser Info:
+- User Agent: ${navigator.userAgent}
+- Platform: ${navigator.platform}
+- Is PWA: ${window.matchMedia('(display-mode: standalone)').matches}
+- Current URL: ${window.location.href}
+
+Environment:
+- API URL: ${environment.apiUrl}
+- Is Authenticated: ${this.authService.isLoggedIn()}
+
+Service Worker:
+- Controller: ${navigator.serviceWorker?.controller ? 'Active' : 'None'}
+- Ready State: ${navigator.serviceWorker ? 'Available' : 'Not Available'}
+    `;
+
+    console.log(debugInfo);
+    
+    this.showNotification('info', 'Debug Information', 
+      'Debug info has been logged to the browser console. ' +
+      'Open Safari Developer Tools to view the details.\n\n' +
+      'Key info:\n' +
+      `• Notification API: ${'Notification' in window ? 'Supported' : 'Not Supported'}\n` +
+      `• Current Permission: ${Notification.permission}\n` +
+      `• Is PWA: ${window.matchMedia('(display-mode: standalone)').matches ? 'Yes' : 'No'}\n` +
+      `• Service Worker: ${navigator.serviceWorker?.controller ? 'Active' : 'None'}`
+    );
   }
 }
