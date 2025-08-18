@@ -181,6 +181,100 @@
         </div>
       </div>
 
+      <!-- Secure Payment Instructions Section -->
+      <div class="payment-instructions-section" *ngIf="order.payment_status === 'Pending'">
+        <h3>🔐 Secure Payment Instructions</h3>
+        
+        <!-- Loading State -->
+        <div *ngIf="loadingPaymentInstructions" class="payment-loading">
+          <div class="loading-spinner"></div>
+          <p>Loading secure payment instructions...</p>
+        </div>
+        
+        <!-- Error State -->
+        <div *ngIf="paymentError" class="payment-error">
+          <div class="error-icon">⚠️</div>
+          <p>{{ paymentError }}</p>
+          <button class="retry-button" (click)="loadPaymentInstructions(order.id)">
+            🔄 Retry
+          </button>
+        </div>
+        
+        <!-- Payment Instructions -->
+        <div *ngIf="paymentInstructions && !loadingPaymentInstructions" class="payment-details">
+          <div class="payment-security-notice">
+            <div class="security-icon">🛡️</div>
+            <div class="security-text">
+              <strong>Secure Payment Details</strong>
+              <p>These payment details are securely generated for your order only.</p>
+            </div>
+          </div>
+          
+          <div class="payment-method-info">
+            <h4>{{ paymentInstructions.method }} Payment</h4>
+            <div class="account-details">
+              <div class="account-item">
+                <span class="label">Account Name:</span>
+                <span class="value">{{ paymentInstructions.account_name }}</span>
+              </div>
+              <div class="account-item">
+                <span class="label">{{ paymentInstructions.bank_name ? 'Bank:' : 'Number:' }}</span>
+                <span class="value account-number">{{ paymentInstructions.bank_name || paymentInstructions.account_number }}</span>
+              </div>
+              <div class="account-item" *ngIf="paymentInstructions.bank_name">
+                <span class="label">Account Number:</span>
+                <span class="value account-number">{{ paymentInstructions.account_number }}</span>
+              </div>
+              <div class="account-item">
+                <span class="label">Amount:</span>
+                <span class="value amount">₱{{ paymentInstructions.total_amount.toFixed(2) }}</span>
+              </div>
+              <div class="account-item">
+                <span class="label">Reference:</span>
+                <span class="value reference">Order #{{ paymentInstructions.order_id.slice(-6) }}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="payment-instructions-text">
+            <p>{{ paymentInstructions.instructions }}</p>
+          </div>
+          
+          <div class="payment-steps">
+            <h5>📋 Step-by-Step Guide:</h5>
+            <ol class="steps-list">
+              <li *ngFor="let step of paymentInstructions.steps">{{ step }}</li>
+            </ol>
+          </div>
+          
+          <div class="payment-reminders">
+            <div class="reminder-item">
+              <span class="reminder-icon">⚠️</span>
+              <span>Send the exact amount: ₱{{ paymentInstructions.total_amount.toFixed(2) }}</span>
+            </div>
+            <div class="reminder-item">
+              <span class="reminder-icon">📝</span>
+              <span>Include the reference: Order #{{ paymentInstructions.order_id.slice(-6) }}</span>
+            </div>
+            <div class="reminder-item">
+              <span class="reminder-icon">📸</span>
+              <span>Keep your transaction receipt for verification</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Confirmed Message -->
+      <div class="payment-confirmed-section" *ngIf="order.payment_status === 'Confirmed'">
+        <div class="payment-confirmed">
+          <div class="confirmed-icon">✅</div>
+          <div class="confirmed-text">
+            <h4>Payment Confirmed!</h4>
+            <p>Your payment has been verified and confirmed. Thank you!</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Feedback Section -->
       <div class="feedback-section" *ngIf="order.status === 'Delivered'">
         <h3>💬 Share Your Experience</h3>

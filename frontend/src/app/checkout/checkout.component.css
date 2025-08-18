@@ -913,20 +913,55 @@ button[type="submit"]:disabled {
     display: none;
   }
 
+  /* Ensure search container has proper positioning context on mobile */
+  .search-container {
+    position: relative !important;
+    z-index: 1000;
+    margin-bottom: 1rem;
+  }
+
   /* Ensure search results dropdown is mobile-friendly */
   .search-results {
-    max-width: calc(100vw - 2rem);
+    position: relative !important;
+    top: 5px !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
     font-size: 14px;
     max-height: 250px;
+    z-index: 9999 !important;
+    background-color: #1C1C1E !important;
+    border: 2px solid #B91C1C !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+    border-radius: 8px !important;
+    overflow-y: auto;
+    display: block !important;
+    visibility: visible !important;
+    margin-top: 5px;
   }
 
   .search-result-item {
     padding: 16px 12px;
     min-height: 48px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .search-result-item:hover,
+  .search-result-item:active {
+    background-color: #B91C1C !important;
+    color: #FFFFFF;
   }
 
   .result-text {
     font-size: 0.85rem;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+
+  .result-icon {
+    font-size: 18px;
+    margin-right: 10px;
   }
 
   /* Mobile delivery/pickup toggle styles */
@@ -996,6 +1031,155 @@ button[type="submit"]:disabled {
   /* Show map by default on large screens */
   .map-container.mobile-hidden {
     display: block;
+  }
+
+  /* Mobile-friendly Order Success Modal */
+  .order-success {
+    margin: 0.25rem;
+    border-radius: 12px;
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+  
+  .success-content {
+    padding: 1rem;
+  }
+  
+  .success-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+  
+  .order-success h1 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+  }
+  
+  .order-details {
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+  }
+  
+  .order-details h3 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .order-details p {
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin-bottom: 0.75rem;
+  }
+  
+  .important-notice {
+    padding: 0.75rem;
+    font-size: 0.85rem;
+    margin: 0.75rem 0;
+    line-height: 1.3;
+  }
+  
+  .delivery-instructions ul,
+  .pickup-instructions ul {
+    padding-left: 1.25rem;
+    margin: 0.75rem 0;
+  }
+  
+  .delivery-instructions li,
+  .pickup-instructions li {
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    font-size: 0.9rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    padding: 0;
+  }
+  
+  .primary-btn, .secondary-btn, .tertiary-btn {
+    width: 100%;
+    min-width: auto;
+    padding: 0.875rem 1rem;
+    font-size: 0.95rem;
+    min-height: 48px; /* Better touch targets */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 8px;
+  }
+  
+  .primary-btn:hover,
+  .secondary-btn:hover,
+  .tertiary-btn:hover {
+    transform: none; /* Remove hover transform on mobile */
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .order-success {
+    margin: 0.125rem;
+    max-height: 98vh;
+  }
+  
+  .success-content {
+    padding: 0.75rem;
+  }
+  
+  .success-icon {
+    font-size: 2rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .order-success h1 {
+    font-size: 1.3rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .order-details {
+    padding: 0.75rem;
+    margin: 0.75rem 0;
+  }
+  
+  .order-details h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .order-details p {
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .important-notice {
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    margin: 0.5rem 0;
+  }
+  
+  .delivery-instructions li,
+  .pickup-instructions li {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .action-buttons {
+    margin-top: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .primary-btn, .secondary-btn, .tertiary-btn {
+    padding: 0.75rem 0.875rem;
+    font-size: 0.9rem;
+    min-height: 44px;
   }
 }
 

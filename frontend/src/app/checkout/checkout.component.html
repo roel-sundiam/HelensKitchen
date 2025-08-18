@@ -18,7 +18,8 @@
             <li>Admin will review your delivery address</li>
             <li>Delivery fee will be calculated and added to your order</li>
             <li>Check order tracking for the final total amount</li>
-            <li>Send payment once the total fee is available</li>
+            <li><strong>🔐 Secure payment instructions will be provided in order tracking</strong></li>
+            <li>Send payment using the secure instructions provided</li>
             <li>Delivery will be scheduled as requested</li>
           </ul>
         </div>
@@ -26,6 +27,8 @@
         <div *ngIf="isPickupMode" class="pickup-instructions">
           <p><strong>Next Steps:</strong></p>
           <ul>
+            <li><strong>🔐 Secure payment instructions will be provided in order tracking</strong></li>
+            <li>Send payment using the secure instructions provided</li>
             <li>Payment verification will be processed</li>
             <li>Pickup will be scheduled as requested</li>
             <li>We'll notify you when your order is ready</li>
@@ -190,7 +193,7 @@
       <!-- Search Results Dropdown -->
       <div *ngIf="searchResults.length > 0" class="search-results">
         <div 
-          *ngFor="let result of searchResults" 
+          *ngFor="let result of searchResults; trackBy: trackByFn" 
           class="search-result-item"
           (click)="selectSearchResult(result)"
         >
@@ -295,7 +298,7 @@
         <p><strong>📍 Pickup Location:</strong><br>
         Helen's Kitchen<br>
         San Fernando, Pampanga</p>
-        <p><strong>📞 Contact:</strong> 0917-XXX-XXXX</p>
+        <p><strong>📞 Contact:</strong> 09175105185</p>
         <p><strong>⏰ Pickup Hours:</strong><br>
         Monday - Sunday: 10:00 AM - 9:00 PM</p>
         <div class="pickup-note">

@@ -486,6 +486,173 @@ input[type="tel"]::placeholder {
     justify-content: center;
     gap: 2rem;
   }
+
+  /* Mobile-specific order header improvements */
+  .order-header {
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+  }
+  
+  .order-header h2 {
+    font-size: 1.2rem;
+    line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    margin-bottom: 0.75rem;
+  }
+  
+  .order-date {
+    font-size: 0.85rem;
+  }
+
+  /* Mobile status cards */
+  .status-section {
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .status-card,
+  .payment-card {
+    padding: 1rem;
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+  
+  .status-icon,
+  .payment-icon {
+    font-size: 1.5rem;
+  }
+  
+  .status-info h3,
+  .payment-info h4 {
+    font-size: 1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .status-info p,
+  .payment-info .payment-method {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+
+  /* Mobile order items section */
+  .order-items-section {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+  }
+  
+  .order-items-section h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Mobile delivery info */
+  .delivery-info {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .delivery-info h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Mobile order total section */
+  .order-total-section {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .order-total-section h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .total-item {
+    font-size: 0.9rem;
+    padding: 0.4rem 0;
+  }
+  
+  .total-item.final-total {
+    font-size: 1rem;
+    padding-top: 0.75rem;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .track-order-container {
+    margin: 0.5rem auto;
+    padding: 0 0.25rem;
+  }
+  
+  .track-order-card {
+    padding: 1rem;
+  }
+
+  /* Fix Order ID overflow on very small screens */
+  .order-header h2 {
+    font-size: 1rem;
+    line-height: 1.2;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    hyphens: auto;
+  }
+  
+  .order-date {
+    font-size: 0.8rem;
+  }
+
+  /* More compact status cards */
+  .status-card,
+  .payment-card {
+    padding: 0.75rem;
+    gap: 0.5rem;
+  }
+  
+  .status-icon,
+  .payment-icon {
+    font-size: 1.25rem;
+  }
+  
+  .status-info h3,
+  .payment-info h4 {
+    font-size: 0.9rem;
+  }
+  
+  .status-info p,
+  .payment-info .payment-method {
+    font-size: 0.8rem;
+  }
+
+  /* Compact sections */
+  .order-items-section,
+  .delivery-info,
+  .order-total-section {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .order-items-section h3,
+  .delivery-info h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .order-total-section h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .total-item {
+    font-size: 0.85rem;
+    padding: 0.3rem 0;
+  }
+  
+  .total-item.final-total {
+    font-size: 0.95rem;
+    padding-top: 0.5rem;
+  }
 }
 
 /* Order Total Section Styles */
@@ -560,4 +727,316 @@ input[type="tel"]::placeholder {
 .total-pending {
   color: #FFA500;
   font-style: italic;
+}
+
+/* Secure Payment Instructions Styles */
+.payment-instructions-section {
+  background: linear-gradient(135deg, #1F2937 0%, #374151 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.payment-instructions-section h3 {
+  color: #22C55E;
+  font-family: "Poppins", sans-serif;
+  font-size: 1.3rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-loading {
+  text-align: center;
+  padding: 2rem;
+  color: #D1D5DB;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(34, 197, 94, 0.2);
+  border-left: 4px solid #22C55E;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.payment-error {
+  text-align: center;
+  padding: 2rem;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.error-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.retry-button {
+  background: #EF4444;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  margin-top: 1rem;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #DC2626;
+  transform: translateY(-1px);
+}
+
+.payment-details {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 1.5rem;
+}
+
+.payment-security-notice {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.security-icon {
+  font-size: 1.5rem;
+  color: #22C55E;
+}
+
+.security-text strong {
+  color: #22C55E;
+  font-size: 1rem;
+}
+
+.security-text p {
+  color: #D1D5DB;
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.payment-method-info h4 {
+  color: #FFFFFF;
+  font-family: "Poppins", sans-serif;
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.account-details {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.account-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.account-item:last-child {
+  border-bottom: none;
+}
+
+.account-item .label {
+  color: #9CA3AF;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.account-item .value {
+  color: #FFFFFF;
+  font-weight: 600;
+  font-family: "Monaco", "Consolas", monospace;
+}
+
+.account-item .value.account-number {
+  background: rgba(59, 130, 246, 0.1);
+  color: #60A5FA;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.account-item .value.amount {
+  color: #22C55E;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.account-item .value.reference {
+  background: rgba(168, 85, 247, 0.1);
+  color: #A855F7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.payment-instructions-text {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.payment-instructions-text p {
+  color: #D1D5DB;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.payment-steps h5 {
+  color: #FFFFFF;
+  font-family: "Poppins", sans-serif;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.steps-list {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem 1rem 1rem 2rem;
+  margin: 0 0 1.5rem 0;
+  counter-reset: step-counter;
+}
+
+.steps-list li {
+  color: #D1D5DB;
+  margin-bottom: 0.75rem;
+  line-height: 1.4;
+  position: relative;
+  font-size: 0.9rem;
+}
+
+.steps-list li::marker {
+  color: #22C55E;
+  font-weight: 700;
+}
+
+.payment-reminders {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  color: #FBBF24;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.reminder-item:last-child {
+  margin-bottom: 0;
+}
+
+.reminder-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+/* Payment Confirmed Section */
+.payment-confirmed-section {
+  background: linear-gradient(135deg, #059669 0%, #10B981 100%);
+  border-radius: 16px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+}
+
+.payment-confirmed {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  text-align: left;
+}
+
+.confirmed-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.confirmed-text h4 {
+  color: #FFFFFF;
+  font-family: "Poppins", sans-serif;
+  margin: 0 0 0.5rem 0;
+  font-size: 1.2rem;
+}
+
+.confirmed-text p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Mobile Responsive for Payment Instructions */
+@media (max-width: 768px) {
+  .payment-instructions-section {
+    padding: 1.5rem;
+  }
+  
+  .payment-security-notice {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .account-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+  
+  .account-item .label {
+    font-size: 0.8rem;
+  }
+  
+  .account-item .value {
+    font-size: 0.9rem;
+  }
+  
+  .payment-confirmed {
+    flex-direction: column;
+    text-align: center;
+    gap: 1rem;
+  }
+  
+  .confirmed-icon {
+    font-size: 2rem;
+  }
+  
+  .steps-list {
+    padding: 1rem 1rem 1rem 1.5rem;
+  }
+  
+  .reminder-item {
+    font-size: 0.8rem;
+  }
 }

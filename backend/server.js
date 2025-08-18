@@ -140,6 +140,155 @@ async function initServer() {
       }
     });
 
+    // GET /api/payment-instructions/:orderId
+    app.get("/api/payment-instructions/:orderId", async (req, res) => {
+      try {
+        const { orderId } = req.params;
+        
+        // Verify the order exists and get the payment method
+        const order = await Order.findById(orderId);
+        if (!order) {
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Get secure payment instructions based on payment method
+        const paymentInstructions = {
+          'GCash': {
+            method: 'GCash',
+            account_name: 'Helen\'s Kitchen',
+            account_number: process.env.GCASH_NUMBER || '09171234567',
+            instructions: `Send payment to the GCash number above. Use "Order #${orderId.slice(-6)}" as your reference message.`,
+            steps: [
+              'Open your GCash app',
+              'Select "Send Money"',
+              `Enter the GCash number: ${process.env.GCASH_NUMBER || '09171234567'}`,
+              `Amount: ₱${order.total_price}`,
+              `Reference: Order #${orderId.slice(-6)}`,
+              'Complete the transaction',
+              'Take a screenshot of the receipt for verification'
+            ]
+          },
+          'Bank Transfer': {
+            method: 'Bank Transfer',
+            bank_name: 'BPI (Bank of the Philippine Islands)',
+            account_name: 'Helen\'s Kitchen',
+            account_number: process.env.BANK_ACCOUNT_NUMBER || '1234567890',
+            instructions: `Transfer the exact amount to the bank account above. Use "Order #${orderId.slice(-6)}" as your reference.`,
+            steps: [
+              'Log in to your online banking or visit the bank',
+              'Select "Transfer Funds" or "Send Money"',
+              `Bank: BPI (Bank of the Philippine Islands)`,
+              `Account Number: ${process.env.BANK_ACCOUNT_NUMBER || '1234567890'}`,
+              `Account Name: Helen's Kitchen`,
+              `Amount: ₱${order.total_price}`,
+              `Reference: Order #${orderId.slice(-6)}`,
+              'Complete the transfer',
+              'Keep the transaction receipt for verification'
+            ]
+          }
+        };
+
+        const paymentMethod = order.payment_method;
+        const instructions = paymentInstructions[paymentMethod];
+
+        if (!instructions) {
+          return res.status(400).json({ error: "Invalid payment method" });
+        }
+
+        res.json({
+          order_id: orderId,
+          payment_method: paymentMethod,
+          total_amount: order.total_price,
+          ...instructions
+        });
+
+      } catch (error) {
+        console.error('Error getting payment instructions:', error);
+        res.status(500).json({ error: "Failed to get payment instructions" });
+      }
+    });
+
+    // GET /api/search-address - Proxy for OpenStreetMap Nominatim to avoid CORS issues
+    app.get("/api/search-address", async (req, res) => {
+      try {
+        const { q, limit = 5 } = req.query;
+        
+        if (!q) {
+          return res.status(400).json({ error: "Search query is required" });
+        }
+
+        // Make request to OpenStreetMap Nominatim API
+        const nominatimUrl = new URL('https://nominatim.openstreetmap.org/search');
+        nominatimUrl.searchParams.set('format', 'json');
+        nominatimUrl.searchParams.set('q', q);
+        nominatimUrl.searchParams.set('countrycodes', 'ph');
+        nominatimUrl.searchParams.set('limit', limit.toString());
+        nominatimUrl.searchParams.set('addressdetails', '1');
+
+        const response = await fetch(nominatimUrl.toString(), {
+          headers: {
+            'User-Agent': 'HelensKitchen/1.0 (helen@helenskitchen.ph)'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Nominatim API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        // Transform the response to match our frontend expectations
+        const results = data.map(item => ({
+          display_name: item.display_name,
+          lat: parseFloat(item.lat),
+          lon: parseFloat(item.lon),
+          place_id: item.place_id,
+          type: item.type,
+          importance: item.importance
+        }));
+
+        res.json(results);
+
+      } catch (error) {
+        console.error('Error searching address:', error);
+        res.status(500).json({ error: "Failed to search address" });
+      }
+    });
+
+    // GET /api/reverse-geocode - Proxy for OpenStreetMap reverse geocoding
+    app.get("/api/reverse-geocode", async (req, res) => {
+      try {
+        const { lat, lon } = req.query;
+        
+        if (!lat || !lon) {
+          return res.status(400).json({ error: "Latitude and longitude are required" });
+        }
+
+        // Make request to OpenStreetMap Nominatim API
+        const nominatimUrl = new URL('https://nominatim.openstreetmap.org/reverse');
+        nominatimUrl.searchParams.set('format', 'json');
+        nominatimUrl.searchParams.set('lat', lat.toString());
+        nominatimUrl.searchParams.set('lon', lon.toString());
+
+        const response = await fetch(nominatimUrl.toString(), {
+          headers: {
+            'User-Agent': 'HelensKitchen/1.0 (helen@helenskitchen.ph)'
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Nominatim API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        res.json(data);
+
+      } catch (error) {
+        console.error('Error reverse geocoding:', error);
+        res.status(500).json({ error: "Failed to reverse geocode" });
+      }
+    });
+
     // POST /api/admin/login
     app.post("/api/admin/login", async (req, res) => {
       const { username, password } = req.body;

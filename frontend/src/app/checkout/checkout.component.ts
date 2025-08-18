@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, AfterViewInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, AfterViewInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   ReactiveFormsModule,
@@ -54,9 +54,9 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
 
   paymentInstructions = {
     GCash:
-      'Send payment to GCash number 0917-XXXX-XXX. Include your order ID as reference.',
+      'Detailed GCash payment instructions will be provided after your order is confirmed.',
     'Bank Transfer':
-      'Transfer to BPI Account 1234-5678-9012. Include your order ID as reference.',
+      'Detailed bank transfer instructions will be provided after your order is confirmed.',
   };
 
   constructor(
@@ -65,7 +65,8 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     private http: HttpClient,
     private router: Router,
     private analyticsService: AnalyticsService,
-    private deliveryService: DeliveryService
+    private deliveryService: DeliveryService,
+    private cdr: ChangeDetectorRef
   ) {
     // Detect if we're on a mobile device
     this.isMobileDevice = window.innerWidth <= 768;
@@ -248,7 +249,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
 
   private async reverseGeocode(lat: number, lng: number): Promise<void> {
     try {
-      const response = await this.http.get<any>(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).toPromise();
+      const response = await this.http.get<any>(`${environment.apiUrl}/reverse-geocode?lat=${lat}&lon=${lng}`).toPromise();
       
       if (response && response.display_name) {
         this.checkoutForm.patchValue({
@@ -280,17 +281,25 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
       this.isSearching = true;
       
       try {
-        // Use Nominatim (free geocoding service) to search for addresses
-        const response = await this.http.get<any[]>(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=ph&limit=5`).toPromise();
+        // Use our backend proxy to search for addresses (avoids CORS issues)
+        const response = await this.http.get<any[]>(`${environment.apiUrl}/search-address?q=${encodeURIComponent(query)}&limit=5`).toPromise();
         
         this.searchResults = response || [];
         this.isSearching = false;
+        
+        // Manually trigger change detection for mobile
+        this.cdr.detectChanges();
       } catch (error) {
         console.error('Error searching addresses:', error);
         this.searchResults = [];
         this.isSearching = false;
+        this.cdr.detectChanges();
       }
     }, 500); // 500ms debounce
+  }
+
+  trackByFn(index: number, item: any): any {
+    return item.place_id || index;
   }
 
   selectSearchResult(result: any): void {

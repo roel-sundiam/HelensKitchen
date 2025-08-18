@@ -15,6 +15,18 @@ interface OrderItem {
   price: number;
 }
 
+interface PaymentInstructions {
+  order_id: string;
+  payment_method: string;
+  total_amount: number;
+  method: string;
+  account_name: string;
+  account_number: string;
+  bank_name?: string;
+  instructions: string;
+  steps: string[];
+}
+
 interface Order {
   id: string;
   customer_name: string;
@@ -42,8 +54,11 @@ interface Order {
 export class TrackOrderComponent {
   trackingForm: FormGroup;
   order: Order | null = null;
+  paymentInstructions: PaymentInstructions | null = null;
   loading = false;
+  loadingPaymentInstructions = false;
   error = '';
+  paymentError = '';
   searched = false;
 
   constructor(private fb: FormBuilder, private http: HttpClient, private router: Router) {
@@ -71,6 +86,8 @@ export class TrackOrderComponent {
         next: (data) => {
           this.order = data;
           this.loading = false;
+          // Automatically load payment instructions
+          this.loadPaymentInstructions(data.id);
         },
         error: (err) => {
           this.error = err.status === 404 
@@ -78,6 +95,25 @@ export class TrackOrderComponent {
             : 'Error loading order. Please try again.';
           this.loading = false;
           console.error(err);
+        }
+      });
+  }
+
+  loadPaymentInstructions(orderId: string) {
+    this.loadingPaymentInstructions = true;
+    this.paymentError = '';
+    this.paymentInstructions = null;
+
+    this.http.get<PaymentInstructions>(`${environment.apiUrl}/payment-instructions/${orderId}`)
+      .subscribe({
+        next: (data) => {
+          this.paymentInstructions = data;
+          this.loadingPaymentInstructions = false;
+        },
+        error: (err) => {
+          this.paymentError = 'Failed to load payment instructions. Please try again later.';
+          this.loadingPaymentInstructions = false;
+          console.error('Error loading payment instructions:', err);
         }
       });
   }
