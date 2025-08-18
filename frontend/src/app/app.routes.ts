@@ -11,6 +11,7 @@ import { FeedbackComponent } from './feedback/feedback';
 import { AdminFeedback } from './admin-feedback/admin-feedback';
 import { AdminAnalyticsComponent } from './admin-analytics/admin-analytics';
 import { AdminInventoryComponent } from './admin-inventory/admin-inventory';
+import { AdminMenuComponent } from './admin-menu/admin-menu.component';
 import { authGuard } from './guards/auth-guard';
 
 export const routes: Routes = [
@@ -25,6 +26,7 @@ export const routes: Routes = [
   { path: 'admin/feedback', component: AdminFeedback, canActivate: [authGuard] },
   { path: 'admin/analytics', component: AdminAnalyticsComponent, canActivate: [authGuard] },
   { path: 'admin/inventory', component: AdminInventoryComponent, canActivate: [authGuard] },
+  { path: 'admin/menu', component: AdminMenuComponent, canActivate: [authGuard] },
   { path: 'feedback', component: FeedbackComponent },
   { path: '**', redirectTo: '' }, // fallback redirect to menu
 ];

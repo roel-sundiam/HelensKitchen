@@ -6,6 +6,8 @@ const session = require("express-session");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const multer = require("multer");
+const fs = require("fs");
 
 // Import MongoDB models
 const {
@@ -26,6 +28,41 @@ const {
   MenuItemIngredient,
   StockMovement
 } = require('./models');
+
+// Multer configuration for file uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads/menu-images');
+    // Ensure directory exists
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp and random string
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, 'menu-' + uniqueSuffix + ext);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  // Accept only image files
+  if (file.mimetype.startsWith('image/')) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB limit
+  }
+});
 
 const app = express();
 
@@ -54,6 +91,7 @@ app.use(session({
 
 // Serve static files
 app.use('/images', express.static(path.join(__dirname, '../frontend/public/images')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Environment variables
 const JWT_SECRET = process.env.JWT_SECRET || 'helens_kitchen_jwt_secret_2024';
@@ -137,6 +175,320 @@ async function initServer() {
       } catch (error) {
         console.error('Error fetching menu:', error);
         res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // ========== ADMIN MENU MANAGEMENT ENDPOINTS ==========
+
+    // GET /api/admin/menu - Get all menu items for admin management
+    app.get("/api/admin/menu", requirePermission('menu.view'), async (req, res) => {
+      try {
+        const menuItems = await MenuItem.find().sort({ name: 1 });
+        const variants = await MenuVariant.find().populate('menu_item_id', 'name');
+        
+        // Combine menu items with their variants for admin view
+        const menuWithVariants = menuItems.map(item => ({
+          id: item._id,
+          name: item.name,
+          description: item.description,
+          image_url: item.image_url,
+          images: item.images || [],
+          base_price: item.base_price,
+          created_at: item.createdAt,
+          updated_at: item.updatedAt,
+          variants: variants.filter(v => v.menu_item_id._id.toString() === item._id.toString()).map(v => ({
+            id: v._id,
+            menu_item_id: v.menu_item_id._id,
+            name: v.name,
+            price: v.price,
+            created_at: v.createdAt,
+            updated_at: v.updatedAt
+          }))
+        }));
+        
+        res.json(menuWithVariants);
+      } catch (error) {
+        console.error('Error fetching admin menu:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // POST /api/admin/menu - Create new menu item
+    app.post("/api/admin/menu", requirePermission('menu.create'), async (req, res) => {
+      try {
+        const { name, description, image_url, images, base_price } = req.body;
+        
+        if (!name || !description || !base_price) {
+          return res.status(400).json({ error: "Name, description, and base price are required" });
+        }
+
+        const menuItem = await MenuItem.create({
+          name,
+          description,
+          image_url: image_url || 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMkQyRDJEIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxOCIgZmlsbD0iI0ZGRkZGRiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk1lbnUgSXRlbTwvdGV4dD48L3N2Zz4=',
+          images: images || [],
+          base_price
+        });
+
+        console.log(`Menu item created: ${menuItem.name} (${menuItem._id})`);
+        res.status(201).json({
+          id: menuItem._id,
+          name: menuItem.name,
+          description: menuItem.description,
+          image_url: menuItem.image_url,
+          images: menuItem.images,
+          base_price: menuItem.base_price,
+          created_at: menuItem.createdAt,
+          updated_at: menuItem.updatedAt,
+          variants: []
+        });
+      } catch (error) {
+        console.error('Error creating menu item:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // PUT /api/admin/menu/:id - Update menu item
+    app.put("/api/admin/menu/:id", requirePermission('menu.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, description, image_url, images, base_price } = req.body;
+        
+        if (!name || !description || !base_price) {
+          return res.status(400).json({ error: "Name, description, and base price are required" });
+        }
+
+        const menuItem = await MenuItem.findByIdAndUpdate(
+          id,
+          {
+            name,
+            description,
+            image_url,
+            images,
+            base_price
+          },
+          { new: true }
+        );
+
+        if (!menuItem) {
+          return res.status(404).json({ error: "Menu item not found" });
+        }
+
+        // Get variants for the updated item
+        const variants = await MenuVariant.find({ menu_item_id: id });
+
+        console.log(`Menu item updated: ${menuItem.name} (${menuItem._id})`);
+        res.json({
+          id: menuItem._id,
+          name: menuItem.name,
+          description: menuItem.description,
+          image_url: menuItem.image_url,
+          images: menuItem.images,
+          base_price: menuItem.base_price,
+          created_at: menuItem.createdAt,
+          updated_at: menuItem.updatedAt,
+          variants: variants.map(v => ({
+            id: v._id,
+            menu_item_id: v.menu_item_id,
+            name: v.name,
+            price: v.price,
+            created_at: v.createdAt,
+            updated_at: v.updatedAt
+          }))
+        });
+      } catch (error) {
+        console.error('Error updating menu item:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // DELETE /api/admin/menu/:id - Delete menu item
+    app.delete("/api/admin/menu/:id", requirePermission('menu.delete'), async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Check if menu item exists
+        const menuItem = await MenuItem.findById(id);
+        if (!menuItem) {
+          return res.status(404).json({ error: "Menu item not found" });
+        }
+
+        // Check if menu item is used in any orders
+        const ordersWithItem = await Order.findOne({ 'items.menu_item_id': id });
+        if (ordersWithItem) {
+          return res.status(400).json({ 
+            error: "Cannot delete menu item that has been ordered. Consider deactivating instead." 
+          });
+        }
+
+        // Delete all variants first
+        await MenuVariant.deleteMany({ menu_item_id: id });
+        
+        // Delete the menu item
+        await MenuItem.findByIdAndDelete(id);
+
+        console.log(`Menu item deleted: ${menuItem.name} (${id})`);
+        res.json({ 
+          message: "Menu item and its variants deleted successfully",
+          deletedItem: {
+            id: menuItem._id,
+            name: menuItem.name
+          }
+        });
+      } catch (error) {
+        console.error('Error deleting menu item:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // POST /api/admin/menu/:id/variants - Create variant for menu item
+    app.post("/api/admin/menu/:id/variants", requirePermission('menu.create'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, price } = req.body;
+        
+        if (!name || !price) {
+          return res.status(400).json({ error: "Variant name and price are required" });
+        }
+
+        // Verify menu item exists
+        const menuItem = await MenuItem.findById(id);
+        if (!menuItem) {
+          return res.status(404).json({ error: "Menu item not found" });
+        }
+
+        const variant = await MenuVariant.create({
+          menu_item_id: id,
+          name,
+          price
+        });
+
+        console.log(`Variant created: ${variant.name} for ${menuItem.name}`);
+        res.status(201).json({
+          id: variant._id,
+          menu_item_id: variant.menu_item_id,
+          name: variant.name,
+          price: variant.price,
+          created_at: variant.createdAt,
+          updated_at: variant.updatedAt
+        });
+      } catch (error) {
+        console.error('Error creating variant:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // PUT /api/admin/menu/variants/:id - Update variant
+    app.put("/api/admin/menu/variants/:id", requirePermission('menu.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, price } = req.body;
+        
+        if (!name || !price) {
+          return res.status(400).json({ error: "Variant name and price are required" });
+        }
+
+        const variant = await MenuVariant.findByIdAndUpdate(
+          id,
+          { name, price },
+          { new: true }
+        );
+
+        if (!variant) {
+          return res.status(404).json({ error: "Variant not found" });
+        }
+
+        console.log(`Variant updated: ${variant.name} (${variant._id})`);
+        res.json({
+          id: variant._id,
+          menu_item_id: variant.menu_item_id,
+          name: variant.name,
+          price: variant.price,
+          created_at: variant.createdAt,
+          updated_at: variant.updatedAt
+        });
+      } catch (error) {
+        console.error('Error updating variant:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // DELETE /api/admin/menu/variants/:id - Delete variant
+    app.delete("/api/admin/menu/variants/:id", requirePermission('menu.delete'), async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Check if variant exists
+        const variant = await MenuVariant.findById(id);
+        if (!variant) {
+          return res.status(404).json({ error: "Variant not found" });
+        }
+
+        // Check if variant is used in any orders
+        const ordersWithVariant = await Order.findOne({ 'items.variant_name': variant.name });
+        if (ordersWithVariant) {
+          return res.status(400).json({ 
+            error: "Cannot delete variant that has been ordered." 
+          });
+        }
+
+        await MenuVariant.findByIdAndDelete(id);
+
+        console.log(`Variant deleted: ${variant.name} (${id})`);
+        res.json({ 
+          message: "Variant deleted successfully",
+          deletedVariant: {
+            id: variant._id,
+            name: variant.name
+          }
+        });
+      } catch (error) {
+        console.error('Error deleting variant:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // POST /api/admin/menu/upload-image - Upload menu item image
+    app.post("/api/admin/menu/upload-image", requirePermission('menu.create'), upload.single('image'), (req, res) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ error: "No image file provided" });
+        }
+
+        // Return the URL for the uploaded image
+        const imageUrl = `${req.protocol}://${req.get('host')}/uploads/menu-images/${req.file.filename}`;
+        
+        console.log(`Image uploaded: ${req.file.filename}`);
+        res.json({
+          message: "Image uploaded successfully",
+          imageUrl: imageUrl,
+          filename: req.file.filename
+        });
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        res.status(500).json({ error: "Upload error" });
+      }
+    });
+
+    // DELETE /api/admin/menu/delete-image/:filename - Delete menu item image
+    app.delete("/api/admin/menu/delete-image/:filename", requirePermission('menu.delete'), (req, res) => {
+      try {
+        const { filename } = req.params;
+        const filePath = path.join(__dirname, 'uploads/menu-images', filename);
+        
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+          return res.status(404).json({ error: "Image file not found" });
+        }
+
+        // Delete the file
+        fs.unlinkSync(filePath);
+        
+        console.log(`Image deleted: ${filename}`);
+        res.json({ message: "Image deleted successfully" });
+      } catch (error) {
+        console.error('Error deleting image:', error);
+        res.status(500).json({ error: "Delete error" });
       }
     });
 
@@ -346,6 +698,39 @@ async function initServer() {
       } catch (error) {
         console.error('Login error:', error);
         res.status(500).json({ error: "Login error" });
+      }
+    });
+
+    // GET /api/admin/verify - Verify JWT token
+    app.get("/api/admin/verify", verifyToken, async (req, res) => {
+      try {
+        // Find user with role information
+        const user = await AdminUser.findById(req.user.userId).populate('role_id');
+        
+        if (!user || !user.is_active) {
+          return res.status(401).json({ authenticated: false, error: "User not found or inactive" });
+        }
+
+        // Get user permissions
+        const rolePermissions = await AdminRolePermission.find({ role_id: user.role_id._id }).populate('permission_id');
+        const permissions = rolePermissions.map(rp => rp.permission_id.name);
+
+        res.json({
+          authenticated: true,
+          admin: {
+            id: user._id,
+            username: user.username,
+            full_name: user.full_name,
+            email: user.email,
+            role: user.role_id.name,
+            role_description: user.role_id.description,
+            permissions: permissions,
+            last_login: user.last_login
+          }
+        });
+      } catch (error) {
+        console.error('Token verification error:', error);
+        res.status(401).json({ authenticated: false, error: "Token verification failed" });
       }
     });
 

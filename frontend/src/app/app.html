@@ -28,6 +28,7 @@
         <a routerLink="/" class="back-to-customer">🏠 Back to Site</a>
         <span class="admin-divider">|</span>
         <a routerLink="/admin/orders" class="admin-link" *ngIf="authService.hasPermission('orders.view')">📋 Orders</a>
+        <a routerLink="/admin/menu" class="admin-link" *ngIf="authService.hasPermission('menu.view')">🍽️ Menu</a>
         <a routerLink="/admin/revenue" class="admin-link" *ngIf="authService.hasPermission('revenue.view')">💰 Revenue</a>
         <a routerLink="/admin/expenses" class="admin-link" *ngIf="authService.hasPermission('expenses.view')">💸 Expenses</a>
         <a routerLink="/admin/feedback" class="admin-link" *ngIf="authService.hasPermission('feedback.view')">💬 Feedback</a>

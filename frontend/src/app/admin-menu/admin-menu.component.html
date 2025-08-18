@@ -1,0 +1,264 @@
+<div class="admin-menu">
+  <div class="header">
+    <h1>🍽️ Menu Management</h1>
+    <button class="btn btn-primary" (click)="openAddMenuItemModal()">
+      ➕ Add Menu Item
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading menu items...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-message">
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="loadMenuItems()">Retry</button>
+  </div>
+
+  <!-- Menu Items List -->
+  <div *ngIf="!loading && !error" class="menu-items">
+    <div *ngFor="let item of menuItems" class="menu-item-card">
+      <div class="item-header">
+        <div class="item-info">
+          <img [src]="item.image_url" [alt]="item.name" class="item-image" 
+               onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMkQyRDJEIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iI0ZGRkZGRiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkZvb2QgSXRlbTwvdGV4dD48L3N2Zz4='">
+          <div class="item-details">
+            <h3>{{ item.name }}</h3>
+            <p class="description">{{ item.description }}</p>
+            <div class="metadata">
+              <span class="base-price">Base Price: {{ formatPrice(item.base_price) }}</span>
+              <span class="date">Created: {{ formatDate(item.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="btn btn-sm btn-outline" (click)="openEditMenuItemModal(item)">
+            ✏️ Edit
+          </button>
+          <button class="btn btn-sm btn-danger" (click)="deleteMenuItem(item)">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Variants Section -->
+      <div class="variants-section">
+        <div class="variants-header">
+          <h4>Variants ({{ item.variants.length }})</h4>
+          <button class="btn btn-sm btn-outline" (click)="openAddVariantModal(item.id)">
+            ➕ Add Variant
+          </button>
+        </div>
+        
+        <div *ngIf="item.variants.length === 0" class="no-variants">
+          No variants available. Add some variants to offer different sizes or types.
+        </div>
+        
+        <div *ngIf="item.variants.length > 0" class="variants-list">
+          <div *ngFor="let variant of item.variants" class="variant-item">
+            <div class="variant-info">
+              <span class="variant-name">{{ variant.name }}</span>
+              <span class="variant-price">{{ formatPrice(variant.price) }}</span>
+            </div>
+            <div class="variant-actions">
+              <button class="btn btn-xs btn-outline" (click)="openEditVariantModal(variant, item.id)">
+                ✏️
+              </button>
+              <button class="btn btn-xs btn-danger" (click)="deleteVariant(variant)">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="menuItems.length === 0" class="empty-state">
+      <h3>No menu items yet</h3>
+      <p>Start building your menu by adding your first item!</p>
+      <button class="btn btn-primary" (click)="openAddMenuItemModal()">
+        ➕ Add First Menu Item
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Menu Item Modal -->
+<div *ngIf="showMenuItemModal" class="modal-overlay" (click)="onModalOverlayClick()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editingMenuItem ? 'Edit Menu Item' : 'Add Menu Item' }}</h2>
+      <button class="close-btn" (click)="closeMenuItemModal()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <form (ngSubmit)="saveMenuItem()">
+        <div class="form-group">
+          <label for="itemName">Name *</label>
+          <input 
+            type="text" 
+            id="itemName" 
+            [(ngModel)]="menuItemForm.name" 
+            name="itemName"
+            class="form-control" 
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="itemDescription">Description *</label>
+          <textarea 
+            id="itemDescription" 
+            [(ngModel)]="menuItemForm.description" 
+            name="itemDescription"
+            class="form-control" 
+            rows="3" 
+            required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="basePrice">Base Price (₱) *</label>
+          <input 
+            type="number" 
+            id="basePrice" 
+            [(ngModel)]="menuItemForm.base_price" 
+            name="basePrice"
+            class="form-control" 
+            min="0" 
+            step="0.01" 
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="imageUrl">Image URL</label>
+          <input 
+            type="url" 
+            id="imageUrl" 
+            [(ngModel)]="menuItemForm.image_url" 
+            name="imageUrl"
+            class="form-control"
+            placeholder="https://example.com/image.jpg">
+          
+          <div class="image-upload-section">
+            <p class="upload-label">Upload images (multiple images supported):</p>
+            <div class="upload-controls">
+              <input 
+                type="file" 
+                id="imageUpload" 
+                (change)="onFileSelected($event)" 
+                accept="image/*"
+                class="file-input">
+              <button 
+                type="button" 
+                class="btn btn-outline btn-sm" 
+                (click)="uploadImage()" 
+                [disabled]="!selectedFile || uploadingImage">
+                {{ uploadingImage ? 'Uploading...' : 'Add Image' }}
+              </button>
+            </div>
+            <div *ngIf="selectedFile" class="file-info">
+              Selected: {{ selectedFile.name }}
+            </div>
+          </div>
+          
+          <!-- Image Gallery -->
+          <div *ngIf="menuItemForm.images && menuItemForm.images.length > 0" class="image-gallery">
+            <h4>Image Gallery ({{ menuItemForm.images.length }} images)</h4>
+            <div class="gallery-grid">
+              <div *ngFor="let imageUrl of menuItemForm.images; let i = index" class="gallery-item">
+                <img [src]="imageUrl" alt="Gallery image {{ i + 1 }}" class="gallery-image">
+                <div class="image-actions">
+                  <button 
+                    type="button" 
+                    class="btn btn-xs" 
+                    [class.btn-primary]="imageUrl === menuItemForm.image_url"
+                    [class.btn-outline]="imageUrl !== menuItemForm.image_url"
+                    (click)="setPrimaryImage(imageUrl)"
+                    title="Set as primary image">
+                    {{ imageUrl === menuItemForm.image_url ? '★ Primary' : '☆ Set Primary' }}
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-xs btn-danger" 
+                    (click)="removeImage(imageUrl)"
+                    title="Remove image">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+            <p class="gallery-note">
+              <strong>Primary image:</strong> The starred image will be the main image shown in the menu list.
+            </p>
+          </div>
+          
+          <!-- Primary Image Preview -->
+          <div *ngIf="menuItemForm.image_url && !menuItemForm.image_url.includes('data:image/svg+xml')" class="image-preview">
+            <h4>Primary Image Preview</h4>
+            <img [src]="menuItemForm.image_url" alt="Primary preview" class="preview-image"
+                 onerror="console.error('Failed to load preview image:', this.src)">
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeMenuItemModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            {{ editingMenuItem ? 'Update' : 'Create' }} Item
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Variant Modal -->
+<div *ngIf="showVariantModal" class="modal-overlay" (click)="onVariantModalOverlayClick()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ editingVariant ? 'Edit Variant' : 'Add Variant' }}</h2>
+      <button class="close-btn" (click)="closeVariantModal()">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <form (ngSubmit)="saveVariant()">
+        <div class="form-group">
+          <label for="variantName">Variant Name *</label>
+          <input 
+            type="text" 
+            id="variantName" 
+            [(ngModel)]="variantForm.name" 
+            name="variantName"
+            class="form-control" 
+            placeholder="e.g., Single Patty, Double Patty, Large"
+            required>
+        </div>
+
+        <div class="form-group">
+          <label for="variantPrice">Price (₱) *</label>
+          <input 
+            type="number" 
+            id="variantPrice" 
+            [(ngModel)]="variantForm.price" 
+            name="variantPrice"
+            class="form-control" 
+            min="0" 
+            step="0.01" 
+            required>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" (click)="closeVariantModal()">
+            Cancel
+          </button>
+          <button type="submit" class="btn btn-primary">
+            {{ editingVariant ? 'Update' : 'Create' }} Variant
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

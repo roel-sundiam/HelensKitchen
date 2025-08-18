@@ -1,4 +1,5 @@
 // Migration script to populate MongoDB with initial data
+require('dotenv').config();
 const {
   connectToMongoDB,
   MenuItem,
@@ -79,7 +80,13 @@ async function migrateToMongoDB() {
       // Inventory
       { name: 'inventory.view', description: 'View inventory and stock levels', resource: 'inventory', action: 'read' },
       { name: 'inventory.update', description: 'Update stock quantities', resource: 'inventory', action: 'update' },
-      { name: 'inventory.manage', description: 'Manage ingredients and recipes', resource: 'inventory', action: 'create' }
+      { name: 'inventory.manage', description: 'Manage ingredients and recipes', resource: 'inventory', action: 'create' },
+      
+      // Menu
+      { name: 'menu.view', description: 'View menu items and variants', resource: 'menu', action: 'read' },
+      { name: 'menu.create', description: 'Create menu items and variants', resource: 'menu', action: 'create' },
+      { name: 'menu.update', description: 'Update menu items and variants', resource: 'menu', action: 'update' },
+      { name: 'menu.delete', description: 'Delete menu items and variants', resource: 'menu', action: 'delete' }
     ];
     
     const createdPermissions = await AdminPermission.insertMany(permissions);
