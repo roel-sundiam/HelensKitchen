@@ -6,8 +6,8 @@
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="manifest.json">
+  <!-- PWA Manifest - Dynamically set based on route -->
+  <link rel="manifest" href="manifest.json" id="manifest-link">
   
   <!-- Primary Meta Tags -->
   <meta name="title" content="Helen's Kitchen - Order Online">
@@ -64,6 +64,33 @@
 </head>
 <body>
   <app-root></app-root>
+  
+  <!-- Dynamic PWA Manifest Selection -->
+  <script>
+    // Set appropriate manifest based on current route
+    (function() {
+      const isAdminRoute = window.location.pathname.startsWith('/admin');
+      const manifestLink = document.getElementById('manifest-link');
+      
+      if (isAdminRoute) {
+        manifestLink.href = 'admin-manifest.json';
+        document.title = 'Helen\'s Kitchen Admin';
+        // Update meta description for admin
+        const metaDescription = document.querySelector('meta[name="description"]');
+        if (metaDescription) {
+          metaDescription.content = 'Helen\'s Kitchen Admin - Manage orders, revenue, and business operations';
+        }
+        // Update meta title for admin
+        const metaTitle = document.querySelector('meta[name="title"]');
+        if (metaTitle) {
+          metaTitle.content = 'Helen\'s Kitchen Admin';
+        }
+      } else {
+        manifestLink.href = 'manifest.json';
+        document.title = 'Helen\'s Kitchen - Order Online';
+      }
+    })();
+  </script>
   
   <!-- PWA Service Worker Registration -->
   <script>
