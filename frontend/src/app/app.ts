@@ -4,12 +4,14 @@ import { CommonModule } from '@angular/common';
 import { AuthService } from './services/auth';
 import { AnalyticsService } from './services/analytics';
 import { CartService } from './cart/cart.service';
+import { UpdateService } from './services/update.service';
 import { ModalComponent } from './shared/modal.component';
+import { UpdateNotificationComponent } from './shared/update-notification.component';
 import { filter, map } from 'rxjs/operators';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, CommonModule, ModalComponent],
+  imports: [RouterOutlet, RouterLink, CommonModule, ModalComponent, UpdateNotificationComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
@@ -22,7 +24,8 @@ export class App {
     public authService: AuthService,
     private analyticsService: AnalyticsService,
     private router: Router,
-    private cartService: CartService
+    private cartService: CartService,
+    private updateService: UpdateService
   ) {
     // Track page navigation
     this.router.events
@@ -45,5 +48,9 @@ export class App {
       .subscribe(count => {
         this.cartItemCount = count;
       });
+
+    // Initialize PWA update service
+    // The service will automatically start checking for updates
+    console.log('PWA: Update service initialized');
   }
 }

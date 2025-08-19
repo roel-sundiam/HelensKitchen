@@ -1,7 +1,7 @@
 // Helen's Kitchen Service Worker
 // Handles push notifications, badge updates, and basic caching
 
-const CACHE_NAME = 'helens-kitchen-v1';
+const CACHE_NAME = 'helens-kitchen-v2';
 const urlsToCache = [
   '/',
   '/menu',
@@ -183,6 +183,17 @@ self.addEventListener('message', (event) => {
     // Send current badge count back to main thread
     getBadgeCount().then(count => {
       event.ports[0]?.postMessage({ type: 'BADGE_COUNT', count });
+    });
+  } else if (event.data.type === 'SKIP_WAITING') {
+    // Skip waiting and take control immediately
+    console.log('Service Worker: Skipping waiting and taking control');
+    self.skipWaiting();
+    
+    // Notify all clients that the service worker has been updated
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({ type: 'SW_UPDATED' });
+      });
     });
   }
 });
