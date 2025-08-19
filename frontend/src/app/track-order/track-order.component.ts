@@ -76,6 +76,9 @@ export class TrackOrderComponent implements OnInit {
   }
 
   ngOnInit() {
+    // Update stored data status for UI
+    this.updateStoredDataStatus();
+    
     // Priority 1: Check URL query parameters (from direct navigation from checkout)
     this.route.queryParams.subscribe(params => {
       const urlOrderId = params['orderId'];
@@ -99,27 +102,29 @@ export class TrackOrderComponent implements OnInit {
       
       // Priority 2: Check localStorage for stored order details
       console.log('🔍 TrackOrderComponent: Checking for stored order details...');
-      const storedDetails = this.customerStorageService.getStoredOrderDetails();
-      
-      if (storedDetails) {
-        console.log('✅ TrackOrderComponent: Found stored order details, auto-filling form', storedDetails);
-        this.trackingForm.patchValue({
-          orderId: storedDetails.orderId,
-          phone: storedDetails.phone
-        });
-        
-        // Automatically submit the form after a short delay
-        setTimeout(() => {
-          if (this.trackingForm.valid) {
-            console.log('🚀 TrackOrderComponent: Auto-submitting form with stored details');
-            this.onSubmit();
-          } else {
-            console.warn('⚠️ TrackOrderComponent: Form is invalid, not auto-submitting');
-          }
-        }, 500);
-      } else {
-        console.log('ℹ️ TrackOrderComponent: No stored order details found');
-      }
+      this.customerStorageService.getStoredOrderDetails().then(storedDetails => {
+        if (storedDetails) {
+          console.log('✅ TrackOrderComponent: Found stored order details, auto-filling form', storedDetails);
+          this.trackingForm.patchValue({
+            orderId: storedDetails.orderId,
+            phone: storedDetails.phone
+          });
+          
+          // Automatically submit the form after a short delay
+          setTimeout(() => {
+            if (this.trackingForm.valid) {
+              console.log('🚀 TrackOrderComponent: Auto-submitting form with stored details');
+              this.onSubmit();
+            } else {
+              console.warn('⚠️ TrackOrderComponent: Form is invalid, not auto-submitting');
+            }
+          }, 500);
+        } else {
+          console.log('ℹ️ TrackOrderComponent: No stored order details found');
+        }
+      }).catch(error => {
+        console.error('❌ TrackOrderComponent: Error checking for stored order details:', error);
+      });
     });
   }
 
@@ -232,15 +237,33 @@ export class TrackOrderComponent implements OnInit {
   }
 
   clearStoredData(): void {
-    this.customerStorageService.clearStoredOrderDetails();
-    this.trackingForm.reset();
-    this.order = null;
-    this.error = '';
-    this.searched = false;
-    this.loading = false;
+    this.customerStorageService.clearStoredOrderDetails().then(() => {
+      console.log('✅ TrackOrderComponent: Cleared stored data');
+      this.trackingForm.reset();
+      this.order = null;
+      this.error = '';
+      this.searched = false;
+      this.loading = false;
+    }).catch(error => {
+      console.error('❌ TrackOrderComponent: Failed to clear stored data:', error);
+    });
   }
 
   hasStoredData(): boolean {
-    return this.customerStorageService.hasStoredOrderDetails();
+    // For the template, we'll use a simple synchronous check
+    // This will be updated after the async initialization
+    return false;
+  }
+
+  // Add a property to track if stored data is available
+  hasStoredDataSync = false;
+
+  private async updateStoredDataStatus(): Promise<void> {
+    try {
+      this.hasStoredDataSync = await this.customerStorageService.hasStoredOrderDetails();
+    } catch (error) {
+      console.error('❌ TrackOrderComponent: Error checking stored data status:', error);
+      this.hasStoredDataSync = false;
+    }
   }
 }

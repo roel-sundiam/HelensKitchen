@@ -1,7 +1,7 @@
 // Helen's Kitchen Service Worker
 // Handles push notifications, badge updates, and basic caching
 
-const CACHE_NAME = 'helens-kitchen-v2';
+const CACHE_NAME = 'helens-kitchen-v3';
 const urlsToCache = [
   '/',
   '/menu',

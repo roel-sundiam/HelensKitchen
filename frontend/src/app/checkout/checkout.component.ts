@@ -579,7 +579,9 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
             response.orderId.toString(),
             phone,
             name
-          );
+          ).catch(error => {
+            console.error('⚠️ CheckoutComponent: Failed to store order details:', error);
+          });
         } else {
           console.warn('⚠️ CheckoutComponent: Missing phone or name, not storing order details', { phone, name });
         }
