@@ -98,8 +98,11 @@ export class TrackOrderComponent implements OnInit {
       }
       
       // Priority 2: Check localStorage for stored order details
+      console.log('🔍 TrackOrderComponent: Checking for stored order details...');
       const storedDetails = this.customerStorageService.getStoredOrderDetails();
+      
       if (storedDetails) {
+        console.log('✅ TrackOrderComponent: Found stored order details, auto-filling form', storedDetails);
         this.trackingForm.patchValue({
           orderId: storedDetails.orderId,
           phone: storedDetails.phone
@@ -108,9 +111,14 @@ export class TrackOrderComponent implements OnInit {
         // Automatically submit the form after a short delay
         setTimeout(() => {
           if (this.trackingForm.valid) {
+            console.log('🚀 TrackOrderComponent: Auto-submitting form with stored details');
             this.onSubmit();
+          } else {
+            console.warn('⚠️ TrackOrderComponent: Form is invalid, not auto-submitting');
           }
         }, 500);
+      } else {
+        console.log('ℹ️ TrackOrderComponent: No stored order details found');
       }
     });
   }

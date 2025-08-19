@@ -568,12 +568,20 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
         // Store order details for future tracking (replaces any previous order)
         const phone = this.checkoutForm.value.phone;
         const name = this.checkoutForm.value.name;
+        console.log('📝 CheckoutComponent: Order submitted successfully, attempting to store details', { 
+          orderId: response.orderId, 
+          phone: phone, 
+          name: name 
+        });
+        
         if (phone && name) {
           this.customerStorageService.storeOrderDetails(
             response.orderId.toString(),
             phone,
             name
           );
+        } else {
+          console.warn('⚠️ CheckoutComponent: Missing phone or name, not storing order details', { phone, name });
         }
         
         // Track order submission event
