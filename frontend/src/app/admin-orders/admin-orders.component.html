@@ -97,6 +97,7 @@
           <th>Delivery Fee</th>
           <th>Final Total (₱)</th>
           <th>Delivery Date</th>
+          <th>Time Left</th>
           <th>Payment Status</th>
           <th>Order Status</th>
           <th>Actions</th>
@@ -147,6 +148,11 @@
               title="Edit delivery date (MM/DD/YYYY HH:MM format)"
               placeholder="MM/DD/YYYY HH:MM"
             />
+          </td>
+          <td>
+            <span class="time-left" [ngClass]="getTimeLeftClass(order)">
+              {{ getTimeLeft(order) }}
+            </span>
           </td>
           <td>
             <select

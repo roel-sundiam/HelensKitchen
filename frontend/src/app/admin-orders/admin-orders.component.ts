@@ -262,6 +262,25 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
         } else {
           console.log('User has selected filters: Showing all matching records');
         }
+        // Sort orders by delivery date (nearest first)
+        filteredData.sort((a, b) => {
+          const dateA = new Date(a.requested_delivery);
+          const dateB = new Date(b.requested_delivery);
+          
+          // Handle invalid dates by placing them at the end
+          if (isNaN(dateA.getTime()) && isNaN(dateB.getTime())) {
+            return 0;
+          }
+          if (isNaN(dateA.getTime())) {
+            return 1;
+          }
+          if (isNaN(dateB.getTime())) {
+            return -1;
+          }
+          
+          return dateA.getTime() - dateB.getTime();
+        });
+        
         this.orders = filteredData;
         
         // Mark that initial load is complete
@@ -1102,6 +1121,73 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
    */
   dismissNotificationSetup() {
     this.showNotificationSetup = false;
+  }
+
+  /**
+   * Calculate time left until delivery/pickup
+   */
+  getTimeLeft(order: Order): string {
+    if (!order.requested_delivery) {
+      return 'No Date';
+    }
+
+    try {
+      const deliveryDate = new Date(order.requested_delivery);
+      const now = new Date();
+      const timeDiff = deliveryDate.getTime() - now.getTime();
+
+      if (isNaN(deliveryDate.getTime())) {
+        return 'Invalid Date';
+      }
+
+      if (timeDiff < 0) {
+        const hoursOverdue = Math.floor(Math.abs(timeDiff) / (1000 * 60 * 60));
+        const minutesOverdue = Math.floor((Math.abs(timeDiff) % (1000 * 60 * 60)) / (1000 * 60));
+        return `OVERDUE ${hoursOverdue}:${minutesOverdue.toString().padStart(2, '0')}`;
+      }
+
+      const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+      const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+
+      return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  }
+
+  /**
+   * Get CSS class for time left styling based on urgency
+   */
+  getTimeLeftClass(order: Order): string {
+    if (!order.requested_delivery) {
+      return 'time-left-invalid';
+    }
+
+    try {
+      const deliveryDate = new Date(order.requested_delivery);
+      const now = new Date();
+      const timeDiff = deliveryDate.getTime() - now.getTime();
+
+      if (isNaN(deliveryDate.getTime())) {
+        return 'time-left-invalid';
+      }
+
+      if (timeDiff < 0) {
+        return 'time-left-overdue';
+      }
+
+      const hours = timeDiff / (1000 * 60 * 60);
+
+      if (hours < 2) {
+        return 'time-left-urgent';
+      } else if (hours < 6) {
+        return 'time-left-soon';
+      } else {
+        return 'time-left-normal';
+      }
+    } catch (error) {
+      return 'time-left-invalid';
+    }
   }
 
 }
