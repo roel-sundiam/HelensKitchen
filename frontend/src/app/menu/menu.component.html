@@ -3,21 +3,106 @@
     <h1 class="menu-title">MENU</h1>
     
     <div class="welcome-section">
-      <p class="welcome-text">
-        Welcome to <span class="brand-name">Helen's Kitchen</span> – your local destination for fresh, delicious comfort food. 
-        We specialize in juicy burgers and our signature Charlie Chan pasta, made with love and quality ingredients.
-      </p>
-      <p class="order-notice">
-        All orders require 24-hour advance notice for delivery. Order today for tomorrow's feast!
-      </p>
+      <!-- Animated Background Elements -->
+      <div class="animated-background">
+        <!-- Floating Particles -->
+        <div class="floating-particles">
+          <div class="particle" *ngFor="let particle of particles; let i = index" 
+               [style.left.px]="particle.x" 
+               [style.top.px]="particle.y"
+               [style.animation-delay.s]="particle.delay"
+               [style.animation-duration.s]="particle.duration">
+          </div>
+        </div>
+        
+        <!-- Floating Food Emojis -->
+        <div class="floating-emojis">
+          <div class="floating-emoji" *ngFor="let emoji of floatingEmojis; let i = index"
+               [style.left.%]="emoji.x"
+               [style.top.%]="emoji.y"
+               [style.animation-delay.s]="emoji.delay"
+               [style.animation-duration.s]="emoji.duration">
+            {{ emoji.icon }}
+          </div>
+        </div>
+        
+        <!-- Pulsing Light Effects -->
+        <div class="light-effects">
+          <div class="light-pulse light-pulse-1"></div>
+          <div class="light-pulse light-pulse-2"></div>
+          <div class="light-pulse light-pulse-3"></div>
+        </div>
+      </div>
+
+      <div class="welcome-text-container">
+        <div class="text-entrance-wrapper">
+          <p class="welcome-text">
+            <span class="typewriter-line bounce-in-left" [class.typing]="currentLine === 0">
+              <span class="typed-text">{{ typedText[0] }}</span>
+              <span class="brand-name-highlight shake-glow" *ngIf="showBrandHighlight">HELEN'S KITCHEN</span>
+              <span class="typed-text">{{ typedText[1] }}</span>
+              <span class="cursor pulse-cursor" *ngIf="showCursor && currentLine === 0">|</span>
+            </span>
+          </p>
+          <p class="welcome-text slide-in-right" *ngIf="showSecondLine">
+            <span class="typewriter-line" [class.typing]="currentLine === 1">
+              <span class="typed-text">{{ typedText[2] }}</span>
+              <span class="highlight-word bounce-highlight" *ngIf="showHighlights.burgers">burgers</span>
+              <span class="typed-text">{{ typedText[3] }}</span>
+              <span class="highlight-word bounce-highlight" *ngIf="showHighlights.charliechan">Charlie Chan pasta</span>
+              <span class="typed-text">{{ typedText[4] }}</span>
+              <span class="highlight-word bounce-highlight" *ngIf="showHighlights.korean">Korean flavors</span>
+              <span class="typed-text">{{ typedText[5] }}</span>
+              <span class="cursor pulse-cursor" *ngIf="showCursor && currentLine === 1">|</span>
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div class="order-notice-wrapper">
+        <p class="order-notice pulse-notice">
+          🎉 All orders require 24-hour advance notice for delivery. Order today for tomorrow's feast! 🍽️
+        </p>
+      </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="search-filter-section">
+      <!-- Search Bar -->
+      <div class="search-container">
+        <input 
+          type="text" 
+          class="search-input"
+          placeholder="Search menu items..."
+          (input)="onSearchChange($event)"
+          [value]="searchTerm"
+          aria-label="Search menu items"
+        >
+        <div class="search-icon">🔍</div>
+      </div>
+
+      <!-- Category Filter -->
+      <div class="category-filter">
+        <button 
+          *ngFor="let category of categories"
+          class="category-btn"
+          [class.active]="selectedCategory === category.id"
+          (click)="onCategoryChange(category.id)"
+          [attr.aria-pressed]="selectedCategory === category.id"
+        >
+          {{ category.name }}
+          <span class="category-count">({{ category.count }})</span>
+        </button>
+      </div>
     </div>
   </div>
 
   <div *ngIf="loading" class="loading-message">Loading menu...</div>
   <div *ngIf="error" class="error-message">{{ error }}</div>
 
+
   <div class="menu-grid" *ngIf="!loading && !error">
-    <div class="menu-item-card" *ngFor="let item of menuItems; let i = index">
+    <div class="menu-item-card" *ngFor="let item of filteredMenuItems; let i = index">
       <div class="menu-item-image">
         <!-- Image Carousel -->
         <div class="image-carousel" *ngIf="item.images && item.images.length > 1; else singleImage">
@@ -66,8 +151,33 @@
       </div>
 
       <div class="menu-item-content">
+        <!-- Chef's Recommendation Badge -->
+        <div class="chef-recommendation-badge" *ngIf="item.isChefRecommendation">
+          <span class="chef-icon">👨‍🍳</span>
+          <span class="badge-text">HELEN'S FAVORITE</span>
+        </div>
+        
         <h2 class="item-name">{{ item.name }}</h2>
         <p class="item-description">{{ item.description }}</p>
+
+        <!-- Item metadata -->
+        <div class="item-metadata">
+          <div class="dietary-info">
+            <span 
+              *ngFor="let dietary of getDietaryInfo(item.name)"
+              class="dietary-badge"
+              [class]="'dietary-' + dietary"
+              [title]="dietary"
+            >
+              <span *ngIf="dietary === 'vegetarian'">🌱</span>
+              <span *ngIf="dietary === 'spicy'">🌶️</span>
+            </span>
+          </div>
+          <div class="prep-time">
+            <span class="time-icon">⏱️</span>
+            <span class="time-text">{{ getEstimatedTime(item.name) }}</span>
+          </div>
+        </div>
 
         <div *ngIf="item.variants && item.variants.length > 0" class="variants">
           <div *ngFor="let variant of item.variants" class="variant-option">
@@ -77,6 +187,7 @@
                 [name]="'variant_' + item.id"
                 [value]="variant.id"
                 (change)="selectedVariants[item.id] = variant"
+                [attr.aria-label]="'Select ' + variant.name + ' for ' + variant.price + ' pesos'"
               />
               <span class="variant-text">{{ variant.name }}</span>
               <span class="variant-price">₱{{ variant.price.toFixed(2) }}</span>
@@ -91,6 +202,41 @@
           ₱{{ item.base_price.toFixed(2) }}
         </div>
 
+        <!-- Quantity Selector -->
+        <div class="quantity-selector" *ngIf="!item.variants || item.variants.length === 0 || selectedVariants[item.id]">
+          <label for="quantity_{{item.id}}" class="quantity-label">Quantity:</label>
+          <div class="quantity-controls">
+            <button 
+              type="button"
+              class="quantity-btn"
+              (click)="decrementQuantity(item.id)"
+              [disabled]="quantities[item.id] <= 1"
+              aria-label="Decrease quantity"
+            >
+              −
+            </button>
+            <input 
+              type="number" 
+              id="quantity_{{item.id}}"
+              class="quantity-input"
+              [value]="quantities[item.id] || 1"
+              (input)="quantities[item.id] = +$any($event.target).value"
+              min="1"
+              max="99"
+              aria-label="Quantity"
+            >
+            <button 
+              type="button"
+              class="quantity-btn"
+              (click)="incrementQuantity(item.id)"
+              [disabled]="quantities[item.id] >= 99"
+              aria-label="Increase quantity"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
         <button
           class="add-to-cart-btn"
           (click)="addItemToCart(item)"
@@ -99,8 +245,12 @@
             item.variants.length > 0 &&
             !selectedVariants[item.id]
           "
+          [attr.aria-label]="'Add ' + item.name + ' to cart'"
         >
           Add to Cart
+          <span *ngIf="quantities[item.id] > 1" class="quantity-badge">
+            ({{ quantities[item.id] }})
+          </span>
         </button>
       </div>
     </div>
@@ -118,4 +268,30 @@
     (continueShopping)="onContinueShopping()"
     (viewCart)="onViewCart()">
   </app-add-to-cart-modal>
+
+  <!-- Customer Feedback Section - Moved Below Menu -->
+  <div class="feedback-section" *ngIf="feedbackStats && feedbackStats.total_reviews > 0">
+    <div class="feedback-header">
+      <h2 class="feedback-title">What Our Customers Say</h2>
+      <div class="overall-rating-summary">
+        <div class="rating-stars">{{ getStarDisplay(feedbackStats.average_rating) }}</div>
+        <div class="rating-info">
+          <span class="rating-number">{{ feedbackStats.average_rating }}/5</span>
+          <span class="review-count">from {{ feedbackStats.total_reviews }}+ happy customers</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Testimonial -->
+    <div class="testimonial-showcase" *ngIf="getCurrentTestimonial()">
+      <div class="testimonial-card">
+        <div class="testimonial-quote">"{{ getCurrentTestimonial()?.comment }}"</div>
+        <div class="testimonial-author">
+          <span class="author-name">{{ getCurrentTestimonial()?.customer_name }}</span>
+          <span class="testimonial-stars">{{ getStarDisplay(getCurrentTestimonial()?.rating || 5) }}</span>
+          <span class="testimonial-time">{{ formatTimeAgo(getCurrentTestimonial()?.days_ago || 0) }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>

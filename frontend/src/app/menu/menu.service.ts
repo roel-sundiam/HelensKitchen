@@ -11,6 +11,7 @@ export interface MenuItem {
   images?: string[]; // Array of images for carousel
   base_price: number;
   variants: { id: number; menu_item_id: number; name: string; price: number }[];
+  isChefRecommendation?: boolean; // For chef's recommendation badge
 }
 
 @Injectable({

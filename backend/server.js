@@ -80,6 +80,8 @@ const corsOptions = {
     'http://localhost:4201',
     'http://192.168.100.39:4200',
     'http://192.168.100.39:4201',
+    'http://192.168.68.115:4200',
+    'http://192.168.68.115:4201',
     'https://helens-kitchen.netlify.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -193,6 +195,74 @@ async function initServer() {
         res.json(menuWithVariants);
       } catch (error) {
         console.error('Error fetching menu:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // GET /api/feedback/approved - Get approved customer feedback for public display
+    app.get("/api/feedback/approved", async (req, res) => {
+      try {
+        const { minRating = 4, limit = 20 } = req.query;
+        
+        // Only fetch approved feedback with high ratings for public display
+        const feedback = await Feedback.find({
+          status: 'approved',
+          rating: { $gte: parseInt(minRating) }
+        })
+        .populate('order_id', 'customer_name')
+        .sort({ createdAt: -1 })
+        .limit(parseInt(limit));
+
+        // Format for public display (anonymize customer data)
+        const publicFeedback = feedback.map(fb => ({
+          id: fb._id,
+          rating: fb.rating,
+          comment: fb.comment,
+          customer_name: fb.customer_name ? 
+            `${fb.customer_name.split(' ')[0]} ${fb.customer_name.split(' ').slice(-1)[0]?.charAt(0)}.` :
+            'Anonymous Customer',
+          created_at: fb.createdAt,
+          days_ago: Math.floor((new Date() - new Date(fb.createdAt)) / (1000 * 60 * 60 * 24))
+        }));
+
+        res.json(publicFeedback);
+      } catch (error) {
+        console.error('Error fetching approved feedback:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // GET /api/feedback/stats - Get feedback statistics for public display
+    app.get("/api/feedback/stats", async (req, res) => {
+      try {
+        const stats = await Feedback.aggregate([
+          {
+            $match: { status: 'approved' }
+          },
+          {
+            $group: {
+              _id: null,
+              total_reviews: { $sum: 1 },
+              average_rating: { $avg: "$rating" },
+              five_star: { $sum: { $cond: [{ $eq: ["$rating", 5] }, 1, 0] } },
+              four_star: { $sum: { $cond: [{ $eq: ["$rating", 4] }, 1, 0] } }
+            }
+          }
+        ]);
+
+        const result = stats[0] || {
+          total_reviews: 0,
+          average_rating: 0,
+          five_star: 0,
+          four_star: 0
+        };
+
+        // Round average rating to 1 decimal place
+        result.average_rating = Math.round(result.average_rating * 10) / 10;
+
+        res.json(result);
+      } catch (error) {
+        console.error('Error fetching feedback stats:', error);
         res.status(500).json({ error: "Database error" });
       }
     });
