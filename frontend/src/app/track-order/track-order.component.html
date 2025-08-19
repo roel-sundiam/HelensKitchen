@@ -3,6 +3,12 @@
     <h1>Track Your Order</h1>
     <p>Enter your order details to check the status of your delivery.</p>
     
+    <!-- Auto-population info message -->
+    <div *ngIf="hasStoredData() && trackingForm.get('orderId')?.value" class="auto-fill-info">
+      <div class="info-icon">💡</div>
+      <span>Order details auto-filled from your recent order</span>
+    </div>
+    
     <form [formGroup]="trackingForm" (ngSubmit)="onSubmit()" class="tracking-form">
       <label>
         Order ID:
@@ -51,6 +57,16 @@
           class="reset-button"
         >
           🔄 New Search
+        </button>
+
+        <button 
+          type="button" 
+          (click)="clearStoredData()" 
+          *ngIf="hasStoredData() && !loading"
+          class="clear-data-button"
+          title="Clear remembered order details"
+        >
+          🗑️ Clear Stored Data
         </button>
       </div>
     </form>

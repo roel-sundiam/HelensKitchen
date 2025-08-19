@@ -14,6 +14,7 @@ import { CartItem, CartService } from '../cart/cart.service';
 import { AnalyticsService } from '../services/analytics';
 import { ErrorModalComponent } from '../shared/error-modal.component';
 import { DeliveryService, DeliveryFeeResponse } from '../services/delivery.service';
+import { CustomerStorageService } from '../services/customer-storage.service';
 import { environment } from '../../environments/environment';
 import * as L from 'leaflet';
 import { OpenLocationCode } from 'open-location-code';
@@ -66,6 +67,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     private router: Router,
     private analyticsService: AnalyticsService,
     private deliveryService: DeliveryService,
+    private customerStorageService: CustomerStorageService,
     private cdr: ChangeDetectorRef
   ) {
     // Detect if we're on a mobile device
@@ -562,6 +564,17 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
         this.orderId = response.orderId;
         this.orderSubmitted = true;
         this.cartService.clearCart();
+        
+        // Store order details for future tracking (replaces any previous order)
+        const phone = this.checkoutForm.value.phone;
+        const name = this.checkoutForm.value.name;
+        if (phone && name) {
+          this.customerStorageService.storeOrderDetails(
+            response.orderId.toString(),
+            phone,
+            name
+          );
+        }
         
         // Track order submission event
         this.analyticsService.trackEvent(

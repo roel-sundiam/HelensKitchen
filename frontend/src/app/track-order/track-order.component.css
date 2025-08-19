@@ -172,6 +172,54 @@ input[type="tel"]::placeholder {
   color: #FFFFFF;
 }
 
+.clear-data-button {
+  background: rgba(239, 68, 68, 0.1);
+  color: #F87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Poppins", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.8;
+}
+
+.clear-data-button:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #EF4444;
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.clear-data-button:active {
+  transform: translateY(0);
+}
+
+.auto-fill-info {
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #93C5FD;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.auto-fill-info .info-icon {
+  font-size: 1rem;
+  color: #60A5FA;
+}
+
 .error-alert {
   background: rgba(239, 68, 68, 0.1);
   color: #EF4444;

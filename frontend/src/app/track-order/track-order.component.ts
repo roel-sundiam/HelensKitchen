@@ -1,8 +1,9 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute } from '@angular/router';
+import { CustomerStorageService } from '../services/customer-storage.service';
 import { environment } from '../../environments/environment';
 
 interface OrderItem {
@@ -51,7 +52,7 @@ interface Order {
   templateUrl: './track-order.component.html',
   styleUrls: ['./track-order.component.css'],
 })
-export class TrackOrderComponent {
+export class TrackOrderComponent implements OnInit {
   trackingForm: FormGroup;
   order: Order | null = null;
   paymentInstructions: PaymentInstructions | null = null;
@@ -61,10 +62,56 @@ export class TrackOrderComponent {
   paymentError = '';
   searched = false;
 
-  constructor(private fb: FormBuilder, private http: HttpClient, private router: Router) {
+  constructor(
+    private fb: FormBuilder, 
+    private http: HttpClient, 
+    private router: Router,
+    private route: ActivatedRoute,
+    private customerStorageService: CustomerStorageService
+  ) {
     this.trackingForm = this.fb.group({
       orderId: ['', [Validators.required, Validators.pattern(/^[a-fA-F0-9]{24}$/)]],
       phone: ['', [Validators.required, Validators.pattern(/^[0-9]{10,15}$/)]]
+    });
+  }
+
+  ngOnInit() {
+    // Priority 1: Check URL query parameters (from direct navigation from checkout)
+    this.route.queryParams.subscribe(params => {
+      const urlOrderId = params['orderId'];
+      const urlPhone = params['phone'];
+      
+      if (urlOrderId && urlPhone) {
+        // Auto-populate from URL parameters
+        this.trackingForm.patchValue({
+          orderId: urlOrderId,
+          phone: urlPhone
+        });
+        
+        // Automatically submit the form after a short delay
+        setTimeout(() => {
+          if (this.trackingForm.valid) {
+            this.onSubmit();
+          }
+        }, 500);
+        return; // Don't check localStorage if we have URL params
+      }
+      
+      // Priority 2: Check localStorage for stored order details
+      const storedDetails = this.customerStorageService.getStoredOrderDetails();
+      if (storedDetails) {
+        this.trackingForm.patchValue({
+          orderId: storedDetails.orderId,
+          phone: storedDetails.phone
+        });
+        
+        // Automatically submit the form after a short delay
+        setTimeout(() => {
+          if (this.trackingForm.valid) {
+            this.onSubmit();
+          }
+        }, 500);
+      }
     });
   }
 
@@ -174,5 +221,18 @@ export class TrackOrderComponent {
     return this.order.items.reduce((total, item) => {
       return total + (item.price * item.quantity);
     }, 0);
+  }
+
+  clearStoredData(): void {
+    this.customerStorageService.clearStoredOrderDetails();
+    this.trackingForm.reset();
+    this.order = null;
+    this.error = '';
+    this.searched = false;
+    this.loading = false;
+  }
+
+  hasStoredData(): boolean {
+    return this.customerStorageService.hasStoredOrderDetails();
   }
 }
