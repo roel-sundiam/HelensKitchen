@@ -581,6 +581,124 @@ async function initServer() {
       }
     });
 
+    // ========== MENU ITEM INGREDIENTS ENDPOINTS ==========
+
+    // GET /api/admin/ingredients/list - Get ingredients list for dropdown
+    app.get("/api/admin/ingredients/list", requirePermission('inventory.view'), async (req, res) => {
+      try {
+        const ingredients = await Ingredient.find({}, 'name unit _id').sort({ name: 1 });
+        
+        const formattedIngredients = ingredients.map(ingredient => ({
+          id: ingredient._id,
+          name: ingredient.name,
+          unit: ingredient.unit
+        }));
+
+        res.json(formattedIngredients);
+      } catch (error) {
+        console.error('Error fetching ingredients list:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // GET /api/admin/menu/:id/ingredients - Get ingredients for a menu item
+    app.get("/api/admin/menu/:id/ingredients", requirePermission('menu.view'), async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        const menuItemIngredients = await MenuItemIngredient.find({ menu_item_id: id })
+          .populate('ingredient_id', 'name unit')
+          .populate('menu_variant_id', 'name');
+
+        const formattedIngredients = menuItemIngredients.map(item => ({
+          id: item._id,
+          ingredient_id: item.ingredient_id._id,
+          ingredient_name: item.ingredient_id.name,
+          ingredient_unit: item.ingredient_id.unit,
+          menu_variant_id: item.menu_variant_id?._id,
+          menu_variant_name: item.menu_variant_id?.name,
+          quantity_needed: item.quantity_needed,
+          created_at: item.createdAt
+        }));
+
+        res.json(formattedIngredients);
+      } catch (error) {
+        console.error('Error fetching menu item ingredients:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // POST /api/admin/menu/:id/ingredients - Add ingredients to menu item
+    app.post("/api/admin/menu/:id/ingredients", requirePermission('menu.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { ingredients } = req.body; // Array of {ingredient_id, menu_variant_id, quantity_needed}
+
+        if (!ingredients || !Array.isArray(ingredients)) {
+          return res.status(400).json({ error: "Ingredients array is required" });
+        }
+
+        // Verify menu item exists
+        const menuItem = await MenuItem.findById(id);
+        if (!menuItem) {
+          return res.status(404).json({ error: "Menu item not found" });
+        }
+
+        // Clear existing ingredients for this menu item
+        await MenuItemIngredient.deleteMany({ menu_item_id: id });
+
+        // Add new ingredients
+        const menuItemIngredients = [];
+        for (const ing of ingredients) {
+          if (!ing.ingredient_id || !ing.quantity_needed) {
+            continue; // Skip invalid entries
+          }
+
+          const menuItemIngredient = await MenuItemIngredient.create({
+            menu_item_id: id,
+            ingredient_id: ing.ingredient_id,
+            menu_variant_id: ing.menu_variant_id || null,
+            quantity_needed: ing.quantity_needed
+          });
+
+          menuItemIngredients.push(menuItemIngredient);
+        }
+
+        console.log(`Updated ingredients for menu item: ${menuItem.name}`);
+        res.json({ 
+          message: "Menu item ingredients updated successfully",
+          count: menuItemIngredients.length
+        });
+      } catch (error) {
+        console.error('Error updating menu item ingredients:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // DELETE /api/admin/menu/:id/ingredients - Remove all ingredients from menu item
+    app.delete("/api/admin/menu/:id/ingredients", requirePermission('menu.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Verify menu item exists
+        const menuItem = await MenuItem.findById(id);
+        if (!menuItem) {
+          return res.status(404).json({ error: "Menu item not found" });
+        }
+
+        const result = await MenuItemIngredient.deleteMany({ menu_item_id: id });
+
+        console.log(`Removed ${result.deletedCount} ingredients from menu item: ${menuItem.name}`);
+        res.json({ 
+          message: "All ingredients removed from menu item successfully",
+          deletedCount: result.deletedCount
+        });
+      } catch (error) {
+        console.error('Error removing menu item ingredients:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
     // GET /api/payment-instructions/:orderId
     app.get("/api/payment-instructions/:orderId", async (req, res) => {
       try {
@@ -2278,12 +2396,64 @@ async function initServer() {
           minimum_stock: ingredient.minimum_stock,
           cost_per_unit: ingredient.cost_per_unit,
           supplier: ingredient.supplier,
-          created_at: ingredient.createdAt
+          stock_status: ingredient.current_stock <= 0 ? 'out' : 
+                       ingredient.current_stock <= ingredient.minimum_stock ? 'low' : 'ok',
+          used_in_items: 0, // TODO: Calculate actual usage from MenuItemIngredients
+          created_at: ingredient.createdAt,
+          updated_at: ingredient.updatedAt
         }));
 
         res.json(formattedIngredients);
       } catch (error) {
         console.error('Error fetching inventory:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // POST /api/admin/inventory - Create new ingredient
+    app.post("/api/admin/inventory", requirePermission('inventory.manage'), async (req, res) => {
+      try {
+        const { name, description, unit, current_stock, minimum_stock, cost_per_unit, supplier } = req.body;
+        
+        if (!name || !unit) {
+          return res.status(400).json({ error: "Name and unit are required" });
+        }
+
+        // Check if ingredient with same name already exists
+        const existingIngredient = await Ingredient.findOne({ name: name.trim() });
+        if (existingIngredient) {
+          return res.status(400).json({ error: "An ingredient with this name already exists" });
+        }
+
+        const ingredient = await Ingredient.create({
+          name: name.trim(),
+          description: description?.trim() || '',
+          unit: unit.trim(),
+          current_stock: current_stock || 0,
+          minimum_stock: minimum_stock || 0,
+          cost_per_unit: cost_per_unit || 0,
+          supplier: supplier?.trim() || ''
+        });
+
+        console.log(`Ingredient created: ${ingredient.name} (${ingredient._id})`);
+        
+        res.status(201).json({
+          id: ingredient._id,
+          name: ingredient.name,
+          description: ingredient.description,
+          unit: ingredient.unit,
+          current_stock: ingredient.current_stock,
+          minimum_stock: ingredient.minimum_stock,
+          cost_per_unit: ingredient.cost_per_unit,
+          supplier: ingredient.supplier,
+          stock_status: ingredient.current_stock <= ingredient.minimum_stock ? 
+            (ingredient.current_stock === 0 ? 'out' : 'low') : 'ok',
+          used_in_items: 0,
+          created_at: ingredient.createdAt,
+          updated_at: ingredient.updatedAt
+        });
+      } catch (error) {
+        console.error('Error creating ingredient:', error);
         res.status(500).json({ error: "Database error" });
       }
     });
@@ -2313,6 +2483,217 @@ async function initServer() {
         res.json(formattedMovements);
       } catch (error) {
         console.error('Error fetching stock movements:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // PUT /api/admin/inventory/:id/stock - Update ingredient stock
+    app.put("/api/admin/inventory/:id/stock", requirePermission('inventory.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { quantity, movement_type, reason, purchase_price } = req.body;
+        
+        if (quantity === undefined || quantity === null) {
+          return res.status(400).json({ error: "Quantity is required" });
+        }
+
+        if (!movement_type) {
+          return res.status(400).json({ error: "Movement type is required" });
+        }
+
+        const validMovementTypes = ['purchase', 'usage', 'adjustment', 'waste'];
+        if (!validMovementTypes.includes(movement_type)) {
+          return res.status(400).json({ error: "Invalid movement type" });
+        }
+
+        // Find the ingredient
+        const ingredient = await Ingredient.findById(id);
+        if (!ingredient) {
+          return res.status(404).json({ error: "Ingredient not found" });
+        }
+
+        // Calculate new stock level
+        const newStock = ingredient.current_stock + quantity;
+        if (newStock < 0) {
+          return res.status(400).json({ error: "Insufficient stock for this operation" });
+        }
+
+        // Update ingredient stock
+        await Ingredient.findByIdAndUpdate(id, { 
+          current_stock: newStock,
+          stock_status: newStock <= ingredient.minimum_stock ? 
+            (newStock === 0 ? 'out' : 'low') : 'ok'
+        });
+
+        // Create stock movement record
+        const movement = await StockMovement.create({
+          ingredient_id: id,
+          movement_type,
+          quantity,
+          reason: reason || '',
+          admin_id: req.adminUser._id,
+          reference_type: 'manual_adjustment',
+          purchase_price: movement_type === 'purchase' && purchase_price ? purchase_price : undefined
+        });
+
+        // Auto-create expense record for purchases
+        let expenseCreated = false;
+        if (movement_type === 'purchase' && quantity > 0) {
+          try {
+            // Use purchase_price if provided, otherwise use ingredient's cost_per_unit
+            const pricePerUnit = purchase_price && purchase_price > 0 ? purchase_price : ingredient.cost_per_unit;
+            const expenseAmount = quantity * pricePerUnit;
+            
+            if (expenseAmount > 0) {
+              const priceNote = purchase_price && purchase_price > 0 ? ` at ₱${purchase_price}/${ingredient.unit}` : '';
+              await Expense.create({
+                date: new Date(),
+                category: 'Ingredients',
+                amount: expenseAmount,
+                notes: `Auto-generated: Purchase of ${quantity} ${ingredient.unit} of ${ingredient.name}${priceNote}${reason ? ` - ${reason}` : ''}`
+              });
+              expenseCreated = true;
+            }
+          } catch (expenseError) {
+            console.error('Error creating expense record:', expenseError);
+            // Continue without failing the stock update
+          }
+        }
+
+        res.json({
+          message: "Stock updated successfully",
+          new_stock: newStock,
+          expense_created: expenseCreated,
+          movement_id: movement._id
+        });
+      } catch (error) {
+        console.error('Error updating inventory stock:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // PUT /api/admin/inventory/:id - Update ingredient details
+    app.put("/api/admin/inventory/:id", requirePermission('inventory.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { name, description, unit, minimum_stock, cost_per_unit, supplier } = req.body;
+        
+        if (!name || !unit) {
+          return res.status(400).json({ error: "Name and unit are required" });
+        }
+
+        // Check if another ingredient with same name already exists (excluding current one)
+        const existingIngredient = await Ingredient.findOne({ 
+          name: name.trim(), 
+          _id: { $ne: id } 
+        });
+        if (existingIngredient) {
+          return res.status(400).json({ error: "An ingredient with this name already exists" });
+        }
+
+        const ingredient = await Ingredient.findByIdAndUpdate(
+          id,
+          {
+            name: name.trim(),
+            description: description?.trim() || '',
+            unit: unit.trim(),
+            minimum_stock: minimum_stock || 0,
+            cost_per_unit: cost_per_unit || 0,
+            supplier: supplier?.trim() || ''
+          },
+          { new: true }
+        );
+
+        if (!ingredient) {
+          return res.status(404).json({ error: "Ingredient not found" });
+        }
+
+        console.log(`Ingredient updated: ${ingredient.name} (${ingredient._id})`);
+        
+        res.json({
+          id: ingredient._id,
+          name: ingredient.name,
+          description: ingredient.description,
+          unit: ingredient.unit,
+          current_stock: ingredient.current_stock,
+          minimum_stock: ingredient.minimum_stock,
+          cost_per_unit: ingredient.cost_per_unit,
+          supplier: ingredient.supplier,
+          stock_status: ingredient.current_stock <= ingredient.minimum_stock ? 
+            (ingredient.current_stock === 0 ? 'out' : 'low') : 'ok',
+          used_in_items: 0, // TODO: Calculate actual usage
+          created_at: ingredient.createdAt,
+          updated_at: ingredient.updatedAt
+        });
+      } catch (error) {
+        console.error('Error updating ingredient:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // DELETE /api/admin/inventory/:id - Delete ingredient
+    app.delete("/api/admin/inventory/:id", requirePermission('inventory.manage'), async (req, res) => {
+      try {
+        const { id } = req.params;
+
+        // Check if ingredient exists
+        const ingredient = await Ingredient.findById(id);
+        if (!ingredient) {
+          return res.status(404).json({ error: "Ingredient not found" });
+        }
+
+        // Check if ingredient is used in any menu items
+        const menuItemUsage = await MenuItemIngredient.findOne({ ingredient_id: id });
+        if (menuItemUsage) {
+          return res.status(400).json({ 
+            error: "Cannot delete ingredient that is used in menu items" 
+          });
+        }
+
+        // Delete all stock movements for this ingredient
+        await StockMovement.deleteMany({ ingredient_id: id });
+        
+        // Delete the ingredient
+        await Ingredient.findByIdAndDelete(id);
+
+        console.log(`Ingredient deleted: ${ingredient.name} (${id})`);
+        res.json({ 
+          message: "Ingredient deleted successfully",
+          deletedIngredient: {
+            id: ingredient._id,
+            name: ingredient.name
+          }
+        });
+      } catch (error) {
+        console.error('Error deleting ingredient:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // DELETE /api/admin/inventory/all - Clear all inventory (for testing)
+    app.delete("/api/admin/inventory/all", requirePermission('inventory.manage'), async (req, res) => {
+      try {
+        // Delete all ingredients, stock movements, and menu item ingredients
+        const ingredientsDeleted = await Ingredient.deleteMany({});
+        const movementsDeleted = await StockMovement.deleteMany({});
+        const menuItemIngredientsDeleted = await MenuItemIngredient.deleteMany({});
+
+        console.log('All inventory cleared:', {
+          ingredients: ingredientsDeleted.deletedCount,
+          movements: movementsDeleted.deletedCount,
+          menuItemIngredients: menuItemIngredientsDeleted.deletedCount
+        });
+
+        res.json({ 
+          message: "All inventory data cleared successfully",
+          deleted: {
+            ingredients: ingredientsDeleted.deletedCount,
+            movements: movementsDeleted.deletedCount,
+            menuItemIngredients: menuItemIngredientsDeleted.deletedCount
+          }
+        });
+      } catch (error) {
+        console.error('Error clearing all inventory:', error);
         res.status(500).json({ error: "Database error" });
       }
     });

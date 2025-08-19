@@ -44,6 +44,7 @@ export interface ImageUploadResponse {
   filename: string;
 }
 
+
 @Injectable({
   providedIn: 'root',
 })
@@ -137,4 +138,5 @@ export class AdminMenuService {
       headers: this.getAuthHeaders() 
     });
   }
+
 }

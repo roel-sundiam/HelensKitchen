@@ -40,6 +40,7 @@ export class AdminMenuComponent implements OnInit {
   selectedFile: File | null = null;
   uploadingImage = false;
 
+
   constructor(
     private adminMenuService: AdminMenuService,
     private modalService: ModalService

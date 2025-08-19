@@ -488,6 +488,83 @@ textarea.form-control {
 }
 
 /* Responsive Design */
+/* Button Styles */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+.btn-primary {
+  background-color: #d4a574;
+  color: white;
+  border-color: #d4a574;
+}
+
+.btn-primary:hover {
+  background-color: #c19660;
+  border-color: #c19660;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #d4a574;
+  border-color: #d4a574;
+}
+
+.btn-outline:hover {
+  background-color: #d4a574;
+  color: white;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+.btn-xs {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+}
+
 @media (max-width: 768px) {
   .admin-menu {
     padding: 1rem;
@@ -532,5 +609,183 @@ textarea.form-control {
   
   .modal-actions {
     flex-direction: column;
+  }
+}
+
+/* Ingredients Modal Styles */
+.large-modal {
+  max-width: 900px;
+  width: 90vw;
+}
+
+.ingredients-info {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid #d4a574;
+}
+
+.ingredients-info p {
+  margin: 0;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.ingredients-table-container {
+  margin-bottom: 2rem;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e1e5e9;
+}
+
+.table-header h4 {
+  margin: 0;
+  color: #333;
+}
+
+.empty-ingredients {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 2px dashed #dee2e6;
+}
+
+.ingredients-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.ingredients-table th,
+.ingredients-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e1e5e9;
+}
+
+.ingredients-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #dee2e6;
+}
+
+.ingredients-table tr:last-child td {
+  border-bottom: none;
+}
+
+.ingredients-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.ingredients-table select,
+.ingredients-table input {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.ingredients-table select:focus,
+.ingredients-table input:focus {
+  outline: none;
+  border-color: #d4a574;
+  box-shadow: 0 0 0 2px rgba(212, 165, 116, 0.2);
+}
+
+.unit-display {
+  color: #666;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.current-ingredients-summary {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background-color: #e7f3ff;
+  border-radius: 6px;
+  border: 1px solid #b8daff;
+}
+
+.current-ingredients-summary h4 {
+  margin: 0 0 1rem 0;
+  color: #0056b3;
+}
+
+.summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #cce7ff;
+}
+
+.summary-item .ingredient-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.summary-item .quantity {
+  background-color: #d4a574;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.summary-item .variant {
+  color: #666;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+@media (max-width: 768px) {
+  .large-modal {
+    width: 95vw;
+    max-width: none;
+    margin: 0.5rem;
+  }
+  
+  .table-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .ingredients-table {
+    font-size: 0.85rem;
+  }
+  
+  .ingredients-table th,
+  .ingredients-table td {
+    padding: 0.5rem;
+  }
+  
+  .summary-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 }

@@ -73,12 +73,13 @@ export class AdminInventoryComponent implements OnInit {
   stockForm = {
     quantity: 0,
     movement_type: 'purchase',
-    reason: ''
+    reason: '',
+    purchase_price: 0
   };
 
   // Units dropdown
   commonUnits = [
-    'pieces', 'grams', 'kg', 'liters', 'ml', 'cups', 'tablespoons', 'teaspoons', 'ounces', 'pounds'
+    'pieces', 'pack', 'grams', 'kg', 'liters', 'ml', 'cups', 'tablespoons', 'teaspoons', 'ounces', 'pounds'
   ];
 
   constructor(
@@ -233,7 +234,8 @@ export class AdminInventoryComponent implements OnInit {
     this.stockForm = {
       quantity: 0,
       movement_type: 'purchase',
-      reason: ''
+      reason: '',
+      purchase_price: 0
     };
     this.showStockForm = true;
   }
@@ -246,7 +248,11 @@ export class AdminInventoryComponent implements OnInit {
 
     this.http.put(`${environment.apiUrl}/admin/inventory/${this.stockUpdateIngredientId}/stock`, this.stockForm, { headers: this.authService.getAuthHeaders() }).subscribe({
       next: (response: any) => {
-        this.successMessage = `Stock updated successfully. New stock: ${response.new_stock}`;
+        let message = `Stock updated successfully. New stock: ${response.new_stock}`;
+        if (response.expense_created) {
+          message += ' 💰 Expense record created automatically.';
+        }
+        this.successMessage = message;
         this.showStockForm = false;
         this.loadInventory();
         this.loadMovements();
@@ -258,6 +264,58 @@ export class AdminInventoryComponent implements OnInit {
     });
   }
 
+  // Check if ingredient form has unsaved changes
+  hasUnsavedIngredientChanges(): boolean {
+    return !!(this.ingredientForm.name || 
+             this.ingredientForm.description || 
+             this.ingredientForm.unit ||
+             this.ingredientForm.current_stock > 0 ||
+             this.ingredientForm.minimum_stock > 0 ||
+             this.ingredientForm.cost_per_unit > 0 ||
+             this.ingredientForm.supplier);
+  }
+
+  // Handle click outside ingredient modal with confirmation
+  onIngredientModalOverlayClick() {
+    if (this.hasUnsavedIngredientChanges()) {
+      this.modalService.showConfirm(
+        'Unsaved Changes',
+        'You have unsaved changes. Are you sure you want to close without saving?',
+        'Yes, Close',
+        'Keep Editing'
+      ).then((confirmed) => {
+        if (confirmed) {
+          this.clearForms();
+        }
+      });
+    } else {
+      this.clearForms();
+    }
+  }
+
+  // Check if stock form has unsaved changes  
+  hasUnsavedStockChanges(): boolean {
+    return !!(this.stockForm.quantity !== 0 || this.stockForm.reason);
+  }
+
+  // Handle click outside stock modal with confirmation
+  onStockModalOverlayClick() {
+    if (this.hasUnsavedStockChanges()) {
+      this.modalService.showConfirm(
+        'Unsaved Changes', 
+        'You have unsaved changes. Are you sure you want to close without saving?',
+        'Yes, Close',
+        'Keep Editing'
+      ).then((confirmed) => {
+        if (confirmed) {
+          this.clearForms();
+        }
+      });
+    } else {
+      this.clearForms();
+    }
+  }
+
   // Utility functions
   clearForms() {
     this.showIngredientForm = false;
@@ -266,6 +324,14 @@ export class AdminInventoryComponent implements OnInit {
     this.successMessage = '';
     this.editingIngredientId = null;
     this.stockUpdateIngredientId = null;
+  }
+
+  getCurrentIngredientCostPerUnit(): number {
+    if (this.stockUpdateIngredientId) {
+      const ingredient = this.ingredients.find(i => i.id === this.stockUpdateIngredientId);
+      return ingredient?.cost_per_unit || 0;
+    }
+    return 0;
   }
 
   formatDate(dateStr: string): string {

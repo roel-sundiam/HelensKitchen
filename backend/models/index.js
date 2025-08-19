@@ -166,7 +166,8 @@ const stockMovementSchema = new mongoose.Schema({
   reason: String,
   reference_id: mongoose.Schema.Types.ObjectId,
   reference_type: String,
-  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' }
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser' },
+  purchase_price: { type: Number } // Price per unit for purchase transactions
 }, { timestamps: true });
 
 // Push Notification Subscription Schema

@@ -21,12 +21,17 @@
   margin-bottom: 2rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 2rem;
+
+  .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
 
   .header-content {
     flex: 1;
-    margin-bottom: 2rem;
 
     h2 {
       font-family: "Bebas Neue", "Poppins", sans-serif;
@@ -72,9 +77,10 @@
   }
 
   .inventory-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1rem !important;
+    width: 100% !important;
 
     .stat-card {
       background: rgba(255, 255, 255, 0.05);
@@ -742,8 +748,8 @@
     padding: 1.5rem;
 
     .inventory-stats {
-      grid-template-columns: 1fr;
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 0.5rem;
 
       .stat-card {
         padding: 1rem;
