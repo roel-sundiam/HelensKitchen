@@ -71,10 +71,12 @@ export class CustomerStorageService {
       console.error('❌ CustomerStorageService: localStorage test failed:', error);
       
       // Check for specific localStorage issues
-      if (error.name === 'QuotaExceededError') {
-        console.error('💾 CustomerStorageService: localStorage quota exceeded');
-      } else if (error.name === 'SecurityError') {
-        console.error('🔒 CustomerStorageService: localStorage blocked by security policy (likely private browsing or PWA restrictions)');
+      if (error instanceof Error) {
+        if (error.name === 'QuotaExceededError') {
+          console.error('💾 CustomerStorageService: localStorage quota exceeded');
+        } else if (error.name === 'SecurityError') {
+          console.error('🔒 CustomerStorageService: localStorage blocked by security policy (likely private browsing or PWA restrictions)');
+        }
       }
       return false;
     }
