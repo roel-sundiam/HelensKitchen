@@ -2667,6 +2667,38 @@ async function initServer() {
 
         console.log(`Ingredient created: ${ingredient.name} (${ingredient._id})`);
         
+        // Auto-create expense and stock movement for initial stock
+        let expenseCreated = false;
+        if (current_stock && current_stock > 0 && cost_per_unit && cost_per_unit > 0) {
+          try {
+            const expenseAmount = current_stock * cost_per_unit;
+            console.log('💰 Creating initial stock expense:', expenseAmount);
+            
+            // Create stock movement record
+            await StockMovement.create({
+              ingredient_id: ingredient._id,
+              movement_type: 'purchase',
+              quantity: current_stock,
+              reason: 'Initial stock',
+              admin_id: req.adminUser._id,
+              reference_type: 'initial_stock'
+            });
+            
+            // Create expense record
+            await Expense.create({
+              date: new Date(),
+              category: 'Ingredients',
+              amount: expenseAmount,
+              notes: `Auto-generated: Initial stock of ${current_stock} ${ingredient.unit} of ${ingredient.name} at ₱${cost_per_unit}/${ingredient.unit}`
+            });
+            
+            expenseCreated = true;
+            console.log('✅ Initial stock expense created successfully');
+          } catch (expenseError) {
+            console.error('❌ Error creating initial stock expense:', expenseError);
+          }
+        }
+        
         res.status(201).json({
           id: ingredient._id,
           name: ingredient.name,
@@ -2680,7 +2712,8 @@ async function initServer() {
             (ingredient.current_stock === 0 ? 'out' : 'low') : 'ok',
           used_in_items: 0,
           created_at: ingredient.createdAt,
-          updated_at: ingredient.updatedAt
+          updated_at: ingredient.updatedAt,
+          expense_created: expenseCreated
         });
       } catch (error) {
         console.error('Error creating ingredient:', error);
@@ -2768,26 +2801,35 @@ async function initServer() {
 
         // Auto-create expense record for purchases
         let expenseCreated = false;
+        console.log('🔍 Expense Debug - movement_type:', movement_type, 'quantity:', quantity);
         if (movement_type === 'purchase' && quantity > 0) {
           try {
             // Use purchase_price if provided, otherwise use ingredient's cost_per_unit
             const pricePerUnit = purchase_price && purchase_price > 0 ? purchase_price : ingredient.cost_per_unit;
             const expenseAmount = quantity * pricePerUnit;
+            console.log('💰 Expense Debug - pricePerUnit:', pricePerUnit, 'expenseAmount:', expenseAmount);
             
             if (expenseAmount > 0) {
               const priceNote = purchase_price && purchase_price > 0 ? ` at ₱${purchase_price}/${ingredient.unit}` : '';
-              await Expense.create({
+              const expenseData = {
                 date: new Date(),
                 category: 'Ingredients',
                 amount: expenseAmount,
                 notes: `Auto-generated: Purchase of ${quantity} ${ingredient.unit} of ${ingredient.name}${priceNote}${reason ? ` - ${reason}` : ''}`
-              });
+              };
+              console.log('📝 Creating expense:', expenseData);
+              await Expense.create(expenseData);
+              console.log('✅ Expense created successfully');
               expenseCreated = true;
+            } else {
+              console.log('❌ Expense not created - expenseAmount is 0');
             }
           } catch (expenseError) {
-            console.error('Error creating expense record:', expenseError);
+            console.error('❌ Error creating expense record:', expenseError);
             // Continue without failing the stock update
           }
+        } else {
+          console.log('❌ Expense not created - conditions not met:', { movement_type, quantity });
         }
 
         res.json({
