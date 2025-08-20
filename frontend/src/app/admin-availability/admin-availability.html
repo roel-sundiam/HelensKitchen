@@ -1,0 +1,306 @@
+<div class="admin-availability">
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-info">
+        <h1>📅 Availability Management</h1>
+        <p class="subtitle">Manage your business availability and schedule</p>
+      </div>
+      <button class="btn btn-primary btn-add" (click)="openAddModal()">
+        <span class="icon">➕</span>
+        <span>Add Restriction</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading">
+    <div class="spinner"></div>
+    <p>Loading availability restrictions...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-message">
+    <p>{{ error }}</p>
+    <button class="btn btn-secondary" (click)="loadAvailabilities()">Retry</button>
+  </div>
+
+  <!-- Calendar View -->
+  <div *ngIf="!loading && !error" class="calendar-container">
+    <div class="calendar-card">
+      <div class="calendar-header">
+        <button class="nav-btn" (click)="previousMonth()">
+          <span>‹</span>
+        </button>
+        <div class="month-year">
+          <h2>{{ getMonthYear() }}</h2>
+          <p class="calendar-subtitle">Click on any future date to add restrictions</p>
+        </div>
+        <button class="nav-btn" (click)="nextMonth()">
+          <span>›</span>
+        </button>
+      </div>
+
+      <div class="calendar-grid">
+        <div class="weekdays-header">
+          <div class="weekday-header" *ngFor="let day of getWeekdays()">{{ day }}</div>
+        </div>
+        
+        <div class="dates-grid">
+          <div 
+            *ngFor="let date of calendarDates" 
+            class="date-cell"
+            [class.other-month]="!isCurrentMonth(date)"
+            [class.past-date]="isPastDate(date)"
+            [class.has-restriction]="getAvailabilityForDate(date)"
+            [class.full-day-restricted]="getAvailabilityForDate(date)?.is_full_day"
+            [class.partial-restriction]="getAvailabilityForDate(date) && !getAvailabilityForDate(date)?.is_full_day"
+            (click)="!isPastDate(date) && openAddModal(date)"
+          >
+            <div class="date-content">
+              <span class="date-number">{{ date.getDate() }}</span>
+              <div 
+                *ngIf="getAvailabilityForDate(date) as availability" 
+                class="restriction-badge"
+                [title]="availability.reason"
+              >
+                <span *ngIf="availability.is_full_day" class="badge-full">CLOSED</span>
+                <span *ngIf="!availability.is_full_day" class="badge-partial">LIMITED</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="calendar-legend">
+        <div class="legend-item">
+          <div class="legend-indicator available"></div>
+          <span>Available</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-indicator partial"></div>
+          <span>Limited Hours</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-indicator closed"></div>
+          <span>Closed</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restrictions List -->
+  <div *ngIf="!loading && !error && availabilities.length > 0" class="restrictions-list">
+    <h3>Current Restrictions for {{ getMonthYear() }}</h3>
+    <div class="restriction-cards">
+      <div *ngFor="let availability of availabilities" class="restriction-card">
+        <div class="restriction-info">
+          <div class="restriction-date">
+            <strong>{{ formatDate(availability.date) }}</strong>
+            <span class="restriction-type" [ngClass]="availability.is_full_day ? 'full-day' : 'partial'">
+              {{ availability.is_full_day ? 'Full Day Closed' : 'Partial Restrictions' }}
+            </span>
+          </div>
+          
+          <div class="restriction-details">
+            <p *ngIf="availability.reason" class="reason">
+              <strong>Reason:</strong> {{ availability.reason }}
+            </p>
+            
+            <div *ngIf="!availability.is_full_day && availability.unavailable_time_slots.length > 0" class="time-slots">
+              <strong>Unavailable Times:</strong>
+              <span *ngFor="let slot of availability.unavailable_time_slots; let last = last" class="time-slot">
+                {{ formatTime(slot) }}<span *ngIf="!last">, </span>
+              </span>
+            </div>
+            
+            <div class="created-by">
+              Created by {{ availability.admin_id.full_name || availability.admin_id.username }} 
+              on {{ formatDate(availability.createdAt) }}
+            </div>
+          </div>
+        </div>
+        
+        <div class="restriction-actions">
+          <button class="btn btn-sm btn-outline" (click)="openEditModal(availability)">
+            ✏️ Edit
+          </button>
+          <button class="btn btn-sm btn-danger" (click)="deleteAvailability(availability)">
+            🗑️ Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Empty State -->
+  <div *ngIf="!loading && !error && availabilities.length === 0" class="empty-state">
+    <p>No availability restrictions set for {{ getMonthYear() }}.</p>
+    <p>Click on any future date in the calendar above to add a restriction.</p>
+  </div>
+</div>
+
+<!-- Modern Modal for Add/Edit Availability -->
+<div *ngIf="showModal" class="modern-modal-overlay" (click)="closeModal()">
+  <div class="modern-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="header-content">
+        <h2>{{ editingAvailability ? 'Edit' : 'Add' }} Availability Restriction</h2>
+        <p class="modal-subtitle">Set up when your business will be unavailable</p>
+      </div>
+      <button class="close-button" (click)="closeModal()">
+        <span>✕</span>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-section">
+        <label class="form-label">Select Date</label>
+        <input 
+          type="date" 
+          [(ngModel)]="availabilityForm.date"
+          [min]="getMinDate()"
+          class="modern-input"
+          (change)="onDateChange()"
+        >
+      </div>
+
+      <div class="form-section">
+        <div class="checkbox-wrapper">
+          <input 
+            type="checkbox" 
+            id="fullDay"
+            [(ngModel)]="availabilityForm.is_full_day"
+            (change)="onFullDayChange()"
+            class="modern-checkbox"
+          >
+          <label for="fullDay" class="checkbox-label">
+            <span class="checkbox-text">Close for the entire day</span>
+          </label>
+        </div>
+      </div>
+
+      <div *ngIf="!availabilityForm.is_full_day" class="form-section">
+        <label class="form-label">Select Unavailable Time Slots</label>
+        
+        <div *ngIf="!availabilityForm.date" class="info-message">
+          <span class="info-icon">ℹ️</span>
+          <span>Please select a date first to see available time slots</span>
+        </div>
+        
+        <div *ngIf="availabilityForm.date" class="time-slots-section">
+          <div class="business-hours-info">
+            <span *ngIf="isSelectedDateWeekend()" class="hours-badge weekend">
+              🌟 Weekend: 8:00 AM - 8:00 PM
+            </span>
+            <span *ngIf="!isSelectedDateWeekend()" class="hours-badge weekday">
+              📅 Weekday: 4:00 PM - 8:00 PM
+            </span>
+          </div>
+          
+          <div class="time-slots-help">
+            <p class="help-text">
+              💡 <strong>Tip:</strong> Click time slots to mark them as unavailable. Selected slots will turn blue. 
+              Click again to unselect.
+            </p>
+          </div>
+          
+          <div class="time-slots-grid">
+            <label *ngFor="let slot of getAvailableTimeSlotsForModal()" class="time-slot-card">
+              <input 
+                type="checkbox" 
+                [checked]="isTimeSlotSelected(slot)"
+                (change)="onTimeSlotChange(slot, $event)"
+                class="slot-checkbox"
+              >
+              <div class="slot-content">
+                <span class="slot-time">{{ formatTime(slot) }}</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <label class="form-label">Reason <span class="optional">(Optional)</span></label>
+        <textarea 
+          [(ngModel)]="availabilityForm.reason"
+          placeholder="e.g., Personal leave, Equipment maintenance, Holiday celebration"
+          class="modern-textarea"
+          rows="3"
+        ></textarea>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-save" (click)="saveAvailability()">
+        <span class="btn-icon">{{ editingAvailability ? '✓' : '➕' }}</span>
+        <span>{{ editingAvailability ? 'Update Restriction' : 'Create Restriction' }}</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modern Confirmation Modal -->
+<div *ngIf="showConfirmModal" class="modern-modal-overlay">
+  <div class="modern-modal confirmation-modal">
+    <div class="modal-header">
+      <div class="header-content">
+        <h2>{{ modalTitle }}</h2>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="confirmation-content">
+        <div class="confirmation-icon">⚠️</div>
+        <p class="confirmation-message">{{ modalMessage }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModals()">Cancel</button>
+      <button class="btn btn-danger" (click)="confirmAction()">
+        <span class="btn-icon">🗑️</span>
+        <span>Delete</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modern Error Modal -->
+<div *ngIf="showErrorModal" class="modern-modal-overlay">
+  <div class="modern-modal error-modal">
+    <div class="modal-header">
+      <div class="header-content">
+        <h2>{{ modalTitle }}</h2>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="message-content">
+        <div class="message-icon error-icon">❌</div>
+        <p class="message-text">{{ modalMessage }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModals()">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modern Success Modal -->
+<div *ngIf="showSuccessModal" class="modern-modal-overlay">
+  <div class="modern-modal success-modal">
+    <div class="modal-header">
+      <div class="header-content">
+        <h2>{{ modalTitle }}</h2>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="message-content">
+        <div class="message-icon success-icon">✅</div>
+        <p class="message-text">{{ modalMessage }}</p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" (click)="closeModals()">OK</button>
+    </div>
+  </div>
+</div>

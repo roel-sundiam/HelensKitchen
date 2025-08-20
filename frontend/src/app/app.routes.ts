@@ -12,6 +12,7 @@ import { AdminFeedback } from './admin-feedback/admin-feedback';
 import { AdminAnalyticsComponent } from './admin-analytics/admin-analytics';
 import { AdminInventoryComponent } from './admin-inventory/admin-inventory';
 import { AdminMenuComponent } from './admin-menu/admin-menu.component';
+import { AdminAvailabilityComponent } from './admin-availability/admin-availability';
 import { authGuard } from './guards/auth-guard';
 
 export const routes: Routes = [
@@ -21,6 +22,7 @@ export const routes: Routes = [
   { path: 'track-order', component: TrackOrderComponent },
   { path: 'admin/login', component: AdminLogin },
   { path: 'admin/orders', component: AdminOrdersComponent, canActivate: [authGuard] },
+  { path: 'admin/availability', component: AdminAvailabilityComponent, canActivate: [authGuard] },
   { path: 'admin/revenue', component: AdminRevenue, canActivate: [authGuard] },
   { path: 'admin/expenses', component: AdminExpenses, canActivate: [authGuard] },
   { path: 'admin/feedback', component: AdminFeedback, canActivate: [authGuard] },

@@ -186,6 +186,19 @@ const pushSubscriptionSchema = new mongoose.Schema({
 // Create compound index for efficient queries
 pushSubscriptionSchema.index({ admin_id: 1, endpoint: 1 }, { unique: true });
 
+// Business Availability Schema
+const businessAvailabilitySchema = new mongoose.Schema({
+  date: { type: Date, required: true },
+  is_full_day: { type: Boolean, default: false },
+  unavailable_time_slots: [{ type: String }], // Array of time slots like ['16:00', '17:00']
+  reason: { type: String, default: '' },
+  admin_id: { type: mongoose.Schema.Types.ObjectId, ref: 'AdminUser', required: true },
+  is_active: { type: Boolean, default: true }
+}, { timestamps: true });
+
+// Create index for efficient date-based queries
+businessAvailabilitySchema.index({ date: 1, is_active: 1 });
+
 // Create models
 const MenuItem = mongoose.model('MenuItem', menuItemSchema);
 const MenuVariant = mongoose.model('MenuVariant', menuVariantSchema);
@@ -203,6 +216,7 @@ const Ingredient = mongoose.model('Ingredient', ingredientSchema);
 const MenuItemIngredient = mongoose.model('MenuItemIngredient', menuItemIngredientSchema);
 const StockMovement = mongoose.model('StockMovement', stockMovementSchema);
 const PushSubscription = mongoose.model('PushSubscription', pushSubscriptionSchema);
+const BusinessAvailability = mongoose.model('BusinessAvailability', businessAvailabilitySchema);
 
 module.exports = {
   connectToMongoDB,
@@ -221,5 +235,6 @@ module.exports = {
   Ingredient,
   MenuItemIngredient,
   StockMovement,
-  PushSubscription
+  PushSubscription,
+  BusinessAvailability
 };

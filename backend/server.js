@@ -27,7 +27,8 @@ const {
   Ingredient,
   MenuItemIngredient,
   StockMovement,
-  PushSubscription
+  PushSubscription,
+  BusinessAvailability
 } = require('./models');
 
 // Import web-push for notifications
@@ -36,7 +37,8 @@ const webpush = require('web-push');
 // Multer configuration for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, 'uploads/menu-images');
+    // Save to frontend public folder for persistence across deployments
+    const uploadDir = path.join(__dirname, '../frontend/public/images/food/uploads');
     // Ensure directory exists
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -544,10 +546,10 @@ async function initServer() {
           return res.status(400).json({ error: "No image file provided" });
         }
 
-        // Return the URL for the uploaded image
-        const imageUrl = `${req.protocol}://${req.get('host')}/uploads/menu-images/${req.file.filename}`;
+        // Return relative path for the uploaded image (to match existing static images)
+        const imageUrl = `images/food/uploads/${req.file.filename}`;
         
-        console.log(`Image uploaded: ${req.file.filename}`);
+        console.log(`Image uploaded: ${req.file.filename} -> ${imageUrl}`);
         res.json({
           message: "Image uploaded successfully",
           imageUrl: imageUrl,
@@ -563,7 +565,7 @@ async function initServer() {
     app.delete("/api/admin/menu/delete-image/:filename", requirePermission('menu.delete'), (req, res) => {
       try {
         const { filename } = req.params;
-        const filePath = path.join(__dirname, 'uploads/menu-images', filename);
+        const filePath = path.join(__dirname, '../frontend/public/images/food/uploads', filename);
         
         // Check if file exists
         if (!fs.existsSync(filePath)) {
@@ -1348,6 +1350,234 @@ async function initServer() {
       } catch (error) {
         console.error('Database error deleting order:', error);
         res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // ============================================
+    // BUSINESS AVAILABILITY MANAGEMENT ENDPOINTS
+    // ============================================
+
+    // Get all availability restrictions
+    app.get("/api/admin/availability", requirePermission('orders.view'), async (req, res) => {
+      try {
+        const { start_date, end_date } = req.query;
+        
+        let query = { is_active: true };
+        
+        // Filter by date range if provided (using Philippine timezone)
+        if (start_date && end_date) {
+          query.date = {
+            $gte: new Date(start_date + 'T00:00:00+08:00'),
+            $lte: new Date(end_date + 'T23:59:59+08:00')
+          };
+        }
+        
+        const availabilities = await BusinessAvailability.find(query)
+          .sort({ date: 1 })
+          .populate('admin_id', 'username full_name');
+        
+        res.json(availabilities);
+      } catch (error) {
+        console.error('Error fetching availability restrictions:', error);
+        res.status(500).json({ error: "Failed to fetch availability restrictions" });
+      }
+    });
+
+    // Create new availability restriction
+    app.post("/api/admin/availability", requirePermission('orders.update'), async (req, res) => {
+      try {
+        const { date, is_full_day, unavailable_time_slots, reason } = req.body;
+        
+        if (!date) {
+          return res.status(400).json({ error: "Date is required" });
+        }
+        
+        // Create date in Philippine timezone to avoid timezone conversion issues
+        const philippineDate = new Date(date + 'T00:00:00+08:00');
+        
+        // Check if availability restriction already exists for this date
+        const existingAvailability = await BusinessAvailability.findOne({
+          date: philippineDate,
+          is_active: true
+        });
+        
+        if (existingAvailability) {
+          return res.status(400).json({ 
+            error: "Availability restriction already exists for this date" 
+          });
+        }
+        
+        const availability = new BusinessAvailability({
+          date: philippineDate,
+          is_full_day: is_full_day || false,
+          unavailable_time_slots: unavailable_time_slots || [],
+          reason: reason || '',
+          admin_id: req.adminUser.userId
+        });
+        
+        await availability.save();
+        
+        const populatedAvailability = await BusinessAvailability.findById(availability._id)
+          .populate('admin_id', 'username full_name');
+        
+        console.log(`Availability restriction created for ${date} by admin ${req.adminUser.userId}`);
+        res.status(201).json(populatedAvailability);
+      } catch (error) {
+        console.error('Error creating availability restriction:', error);
+        res.status(500).json({ error: "Failed to create availability restriction" });
+      }
+    });
+
+    // Update availability restriction
+    app.put("/api/admin/availability/:id", requirePermission('orders.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        const { date, is_full_day, unavailable_time_slots, reason } = req.body;
+        
+        // Create date in Philippine timezone to avoid timezone conversion issues
+        const philippineDate = new Date(date + 'T00:00:00+08:00');
+        
+        const availability = await BusinessAvailability.findByIdAndUpdate(
+          id,
+          {
+            date: philippineDate,
+            is_full_day: is_full_day || false,
+            unavailable_time_slots: unavailable_time_slots || [],
+            reason: reason || ''
+          },
+          { new: true }
+        ).populate('admin_id', 'username full_name');
+        
+        if (!availability) {
+          return res.status(404).json({ error: "Availability restriction not found" });
+        }
+        
+        console.log(`Availability restriction ${id} updated by admin ${req.adminUser.userId}`);
+        res.json(availability);
+      } catch (error) {
+        console.error('Error updating availability restriction:', error);
+        res.status(500).json({ error: "Failed to update availability restriction" });
+      }
+    });
+
+    // Delete availability restriction
+    app.delete("/api/admin/availability/:id", requirePermission('orders.update'), async (req, res) => {
+      try {
+        const { id } = req.params;
+        
+        const availability = await BusinessAvailability.findByIdAndUpdate(
+          id,
+          { is_active: false },
+          { new: true }
+        );
+        
+        if (!availability) {
+          return res.status(404).json({ error: "Availability restriction not found" });
+        }
+        
+        console.log(`Availability restriction ${id} deleted by admin ${req.adminUser.userId}`);
+        res.json({ message: "Availability restriction deleted successfully" });
+      } catch (error) {
+        console.error('Error deleting availability restriction:', error);
+        res.status(500).json({ error: "Failed to delete availability restriction" });
+      }
+    });
+
+    // Public endpoint: Check if date/time is available for customers
+    app.get("/api/availability/check", async (req, res) => {
+      try {
+        const { date, time } = req.query;
+        
+        if (!date) {
+          return res.status(400).json({ error: "Date is required" });
+        }
+        
+        const checkDate = new Date(date + 'T00:00:00+08:00');
+        
+        // Find availability restrictions for the given date
+        const availability = await BusinessAvailability.findOne({
+          date: checkDate,
+          is_active: true
+        });
+        
+        let isAvailable = true;
+        let reason = '';
+        
+        if (availability) {
+          if (availability.is_full_day) {
+            isAvailable = false;
+            reason = availability.reason || 'Business is closed for the day';
+          } else if (time && availability.unavailable_time_slots.includes(time)) {
+            isAvailable = false;
+            reason = availability.reason || 'Business is not available at this time';
+          }
+        }
+        
+        res.json({
+          date: date,
+          time: time,
+          is_available: isAvailable,
+          reason: reason
+        });
+      } catch (error) {
+        console.error('Error checking availability:', error);
+        res.status(500).json({ error: "Failed to check availability" });
+      }
+    });
+
+    // Get available time slots for a specific date
+    app.get("/api/availability/time-slots", async (req, res) => {
+      try {
+        const { date } = req.query;
+        
+        if (!date) {
+          return res.status(400).json({ error: "Date is required" });
+        }
+        
+        const checkDate = new Date(date + 'T00:00:00+08:00');
+        
+        // Get base time slots (business hours)
+        const isWeekend = (checkDate.getDay() === 0 || checkDate.getDay() === 6);
+        let baseTimeSlots;
+        
+        if (isWeekend) {
+          // Weekends: 8am to 8pm
+          baseTimeSlots = [
+            '08:00', '09:00', '10:00', '11:00', '12:00',
+            '13:00', '14:00', '15:00', '16:00', '17:00',
+            '18:00', '19:00', '20:00'
+          ];
+        } else {
+          // Weekdays: 4pm to 8pm
+          baseTimeSlots = ['16:00', '17:00', '18:00', '19:00', '20:00'];
+        }
+        
+        // Check for availability restrictions
+        const availability = await BusinessAvailability.findOne({
+          date: checkDate,
+          is_active: true
+        });
+        
+        let availableSlots = [...baseTimeSlots];
+        
+        if (availability) {
+          if (availability.is_full_day) {
+            availableSlots = [];
+          } else if (availability.unavailable_time_slots.length > 0) {
+            availableSlots = baseTimeSlots.filter(
+              slot => !availability.unavailable_time_slots.includes(slot)
+            );
+          }
+        }
+        
+        res.json({
+          date: date,
+          available_slots: availableSlots,
+          unavailable_reason: availability?.reason || null
+        });
+      } catch (error) {
+        console.error('Error fetching available time slots:', error);
+        res.status(500).json({ error: "Failed to fetch available time slots" });
       }
     });
 

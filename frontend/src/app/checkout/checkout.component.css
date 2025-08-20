@@ -440,6 +440,27 @@ button[type="submit"]:disabled {
   border-left: 3px solid #EF4444;
 }
 
+.availability-warning {
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 14px;
+  border-width: 2px;
+  border-style: solid;
+}
+
+.availability-warning.unavailable {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: #EF4444;
+}
+
+.availability-warning.partial {
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: #F59E0B;
+}
+
 /* Plus Code Input Group */
 .plus-code-input-group {
   display: flex;

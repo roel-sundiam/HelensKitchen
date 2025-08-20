@@ -15,6 +15,7 @@ import { AnalyticsService } from '../services/analytics';
 import { ErrorModalComponent } from '../shared/error-modal.component';
 import { DeliveryService, DeliveryFeeResponse } from '../services/delivery.service';
 import { CustomerStorageService } from '../services/customer-storage.service';
+import { AvailabilityService } from '../services/availability.service';
 import { environment } from '../../environments/environment';
 import * as L from 'leaflet';
 import { OpenLocationCode } from 'open-location-code';
@@ -68,6 +69,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     private analyticsService: AnalyticsService,
     private deliveryService: DeliveryService,
     private customerStorageService: CustomerStorageService,
+    private availabilityService: AvailabilityService,
     private cdr: ChangeDetectorRef
   ) {
     // Detect if we're on a mobile device
@@ -95,11 +97,16 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     });
 
     // Watch for delivery date changes to reset time selection
-    this.checkoutForm.get('deliveryDate')?.valueChanges.subscribe(() => {
+    this.checkoutForm.get('deliveryDate')?.valueChanges.subscribe((selectedDate) => {
       // Reset time selection when date changes since valid times depend on the day
       this.checkoutForm.patchValue({
         deliveryTime: ''
       });
+      
+      // Check availability for the selected date
+      if (selectedDate) {
+        this.checkDateAvailability(selectedDate);
+      }
     });
 
     // Note: Delivery fee calculation removed - admin will set delivery fee manually after order submission
@@ -437,7 +444,15 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     const minDate = new Date(now.getTime() + 24 * 60 * 60 * 1000);
     minDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
     selectedDate.setHours(0, 0, 0, 0);
-    return selectedDate >= minDate ? null : { invalidDate: true };
+    
+    // Check basic 24-hour rule first
+    if (selectedDate < minDate) {
+      return { invalidDate: true };
+    }
+    
+    // Check availability restrictions (async validation handled elsewhere)
+    // This validator only handles the basic date validation
+    return null;
   }
 
   validateDeliveryTime(control: AbstractControl): ValidationErrors | null {
@@ -465,6 +480,40 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     return selectedDateTime >= minDateTime ? null : { invalidDateTime: true };
   }
 
+  // Availability checking methods
+  private availableTimeSlots: string[] = [];
+  private unavailabilityReason: string | null = null;
+
+  checkDateAvailability(dateString: string): void {
+    this.availabilityService.getAvailableTimeSlots(dateString).subscribe({
+      next: (response) => {
+        this.availableTimeSlots = response.available_slots;
+        this.unavailabilityReason = response.unavailable_reason;
+        
+        // If currently selected time is no longer available, clear it
+        const currentTime = this.checkoutForm.get('deliveryTime')?.value;
+        if (currentTime && !this.availableTimeSlots.includes(currentTime)) {
+          this.checkoutForm.patchValue({ deliveryTime: '' });
+        }
+      },
+      error: (err) => {
+        console.error('Error checking availability:', err);
+        // Fall back to default time slots
+        const selectedDate = new Date(dateString);
+        this.availableTimeSlots = this.getValidTimeSlotsForDate(selectedDate);
+        this.unavailabilityReason = null;
+      }
+    });
+  }
+
+  isDateFullyUnavailable(): boolean {
+    return this.availableTimeSlots.length === 0 && this.unavailabilityReason !== null;
+  }
+
+  getUnavailabilityReason(): string | null {
+    return this.unavailabilityReason;
+  }
+
   // Helper methods for delivery time validation
   isWeekend(date: Date): boolean {
     const day = date.getDay();
@@ -480,7 +529,7 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
         '18:00', '19:00', '20:00'
       ];
     } else {
-      // Weekdays: 4pm to 8pm
+      // Weekdays: 4pm to 8pm only
       return ['16:00', '17:00', '18:00', '19:00', '20:00'];
     }
   }
@@ -490,6 +539,14 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!dateControl?.value) {
       return [];
     }
+    
+    // Return availability-filtered time slots if they've been loaded
+    // Otherwise return base time slots
+    if (this.availableTimeSlots.length > 0 || this.unavailabilityReason !== null) {
+      return this.availableTimeSlots;
+    }
+    
+    // Fall back to base time slots if availability hasn't been checked yet
     const selectedDate = new Date(dateControl.value);
     return this.getValidTimeSlotsForDate(selectedDate);
   }
@@ -529,6 +586,32 @@ export class CheckoutComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
+    // Check availability one more time before submitting
+    const selectedDate = this.checkoutForm.value.deliveryDate;
+    const selectedTime = this.checkoutForm.value.deliveryTime;
+    
+    if (selectedDate && selectedTime && !this.isPickupMode) {
+      this.availabilityService.checkAvailability(selectedDate, selectedTime).subscribe({
+        next: (response) => {
+          if (!response.is_available) {
+            this.showError('Time Not Available', 
+              `The selected time slot is no longer available. ${response.reason || 'Please choose a different time.'}`);
+            return;
+          }
+          this.proceedWithOrderSubmission();
+        },
+        error: (err) => {
+          console.error('Error checking availability during submission:', err);
+          // Proceed anyway if availability check fails
+          this.proceedWithOrderSubmission();
+        }
+      });
+    } else {
+      this.proceedWithOrderSubmission();
+    }
+  }
+
+  private proceedWithOrderSubmission() {
     // Note: Delivery fee validation removed - admin will set delivery fee after order submission
 
     const subtotal = this.cartService.getTotal();

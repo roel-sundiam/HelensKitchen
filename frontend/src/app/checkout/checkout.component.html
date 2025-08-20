@@ -394,6 +394,20 @@
     >
       Delivery time is required.
     </div>
+    
+    <!-- Availability Warnings -->
+    <div *ngIf="isDateFullyUnavailable()" class="availability-warning unavailable">
+      ❌ <strong>Sorry, we're not available on this date.</strong>
+      <br>
+      <span *ngIf="getUnavailabilityReason()">{{ getUnavailabilityReason() }}</span>
+      <span *ngIf="!getUnavailabilityReason()">Please choose a different date.</span>
+    </div>
+    
+    <div *ngIf="!isDateFullyUnavailable() && getUnavailabilityReason()" class="availability-warning partial">
+      ⚠️ <strong>Limited availability on this date.</strong>
+      <br>
+      {{ getUnavailabilityReason() }}
+    </div>
   </label>
 
 
