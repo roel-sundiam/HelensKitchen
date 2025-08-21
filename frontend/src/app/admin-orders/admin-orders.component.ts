@@ -977,7 +977,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
         discount: this.newOrder.discount || 0,
         requested_delivery: new Date(this.newOrder.requested_delivery).toISOString(),
         items: this.newOrder.items.map(item => ({
-          menu_item_id: parseInt(item.menu_item_id),
+          menu_item_id: item.menu_item_id,
           variant_name: item.variant_name,
           quantity: item.quantity,
           price: item.price

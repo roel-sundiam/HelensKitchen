@@ -34,11 +34,11 @@ node clear-orders.js    # Clear all orders data (for testing)
 
 ### Backend Structure
 - **Entry Point**: `server.js` - Express server with CORS enabled
-- **Database**: SQLite with `db.js` handling connection and table creation
+- **Database**: MongoDB with Mongoose ODM for data modeling
 - **API Pattern**: RESTful API with `/api` prefix
-- **Database Tables**: 
-  - `menu_items` - Food items with base pricing
-  - `menu_variants` - Item variants (sizes/types) with individual pricing
+- **Database Collections**: 
+  - `menuitems` - Food items with base pricing
+  - `menuvariants` - Item variants (sizes/types) with individual pricing
   - `orders` - Customer orders with status tracking
   - `expenses` - Admin expense management
 
@@ -76,18 +76,18 @@ node clear-orders.js    # Clear all orders data (for testing)
 2. Cart state managed by `CartService` using BehaviorSubject pattern
 3. Orders submitted to backend API
 4. Admin interface for order status updates
-5. SQLite database persists all data locally
+5. MongoDB database persists all data with cloud/local deployment options
 
 ## Database Schema Key Points
 - Menu items have variants (single/double patty, different sizes)
 - Orders track both order status and payment verification separately
-- Expenses table for admin financial tracking
-- All timestamps use SQLite's CURRENT_TIMESTAMP default
+- Expenses collection for admin financial tracking
+- All documents include timestamps managed by Mongoose
 
 ## Development Notes
 - Backend runs on port 4000, frontend on 4200
 - CORS enabled for local development
-- SQLite database file: `helens_kitchen.db`
+- MongoDB connection via environment variable MONGODB_URI
 - Frontend uses HttpClient for API communication
 - Services are provided at root level with `providedIn: 'root'`
 
@@ -109,9 +109,9 @@ node clear-orders.js
 ```
 
 This script:
-- Deletes all records from the `orders` table
+- Deletes all documents from the `orders` collection
 - Preserves all other data (menu items, expenses, users, etc.)
-- Updates the SQLite database file automatically
+- Updates the MongoDB database automatically
 - Useful for resetting order data between testing sessions
 
 ## Application URLs
