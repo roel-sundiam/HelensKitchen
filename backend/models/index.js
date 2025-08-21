@@ -43,6 +43,7 @@ const orderSchema = new mongoose.Schema({
   total_price: { type: Number, required: true },
   delivery_fee: { type: Number, default: 0 },
   delivery_fee_status: { type: String, enum: ['pending', 'set', 'not_applicable'], default: 'pending' },
+  discount: { type: Number, default: 0 },
   quotation_id: { type: String },
   status: { type: String, enum: ['New', 'Processing', 'Delivered', 'Cancelled'], default: 'New' },
   payment_status: { type: String, enum: ['Pending', 'Confirmed'], default: 'Pending' },

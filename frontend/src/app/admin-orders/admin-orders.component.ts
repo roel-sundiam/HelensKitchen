@@ -23,10 +23,12 @@ interface Order {
   total_price: number;
   delivery_fee: number;
   delivery_fee_status: 'pending' | 'set' | 'not_applicable';
+  discount: number;
   status: string;
   payment_status: string;
   requested_delivery: string;
   created_at: string;
+  items: OrderItem[];
 }
 
 interface OrderItem {
@@ -67,6 +69,7 @@ interface NewOrder {
   total_price: number;
   delivery_fee: number;
   delivery_fee_status: string;
+  discount: number;
   status: string;
   payment_status: string;
   requested_delivery: string;
@@ -156,6 +159,17 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   // Manual Order Entry modal states
   showAddOrderModal = false;
   submittingOrder = false;
+
+  // Edit Order modal states
+  showEditOrderModal = false;
+  submittingEditOrder = false;
+  editingOrder: any = null;
+  editOrderItems: OrderItem[] = [];
+  editSelectedMenuItemId: string = '';
+  editSelectedMenuItem: MenuItem | null = null;
+  editSelectedVariantId: string = '';
+  editSelectedVariant: any = null;
+  editSelectedQuantity: number = 1;
   menuItems: MenuItem[] = [];
   selectedMenuItemId: string = '';
   selectedMenuItem: MenuItem | null = null;
@@ -173,6 +187,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     total_price: 0,
     delivery_fee: 0,
     delivery_fee_status: 'pending',
+    discount: 0,
     status: 'New',
     payment_status: 'Pending',
     requested_delivery: '',
@@ -250,6 +265,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     this.http.get<Order[]>(`${environment.apiUrl}/admin/orders`, { params, headers }).subscribe({
       next: (data) => {
         console.log('Orders loaded:', data);
+        console.log('📦 Items debug - First order items:', data[0]?.items);
         // Only filter out delivered and cancelled orders on initial load
         // If user has interacted with filters (even selecting "All"), show all records
         let filteredData = data;
@@ -702,12 +718,20 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   }
 
   getFoodTotal(order: Order): number {
-    // For delivery orders with set delivery fee, subtract delivery fee from total
+    // Calculate food total by subtracting delivery fee and adding back discount
+    let foodTotal = order.total_price;
+    
+    // Subtract delivery fee if applicable
     if (order.delivery_option === 'delivery' && order.delivery_fee_status === 'set') {
-      return order.total_price - order.delivery_fee;
+      foodTotal -= order.delivery_fee;
     }
-    // For pickup orders or pending delivery fee orders, total price is the food total
-    return order.total_price;
+    
+    // Add back discount since total_price already has discount subtracted
+    if (order.discount && order.discount > 0) {
+      foodTotal += order.discount;
+    }
+    
+    return foodTotal;
   }
 
   confirmDeleteOrder(order: Order) {
@@ -802,6 +826,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
       total_price: 0,
       delivery_fee: 0,
       delivery_fee_status: 'pending',
+      discount: 0,
       status: 'New',
       payment_status: 'Pending',
       requested_delivery: '',
@@ -890,7 +915,8 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
   getFinalTotal(): number {
     const itemsTotal = this.getItemsSubtotal();
     const deliveryFee = this.newOrder.delivery_option === 'delivery' ? (this.newOrder.delivery_fee || 0) : 0;
-    return itemsTotal + deliveryFee;
+    const discount = this.newOrder.discount || 0;
+    return Math.max(0, itemsTotal + deliveryFee - discount);
   }
 
   calculateTotal() {
@@ -947,6 +973,7 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
         delivery_fee: this.newOrder.delivery_option === 'delivery' ? (this.newOrder.delivery_fee || 0) : 0,
         delivery_fee_status: this.newOrder.delivery_option === 'delivery' ? 
           (this.newOrder.delivery_fee > 0 ? 'set' : 'pending') : 'not_applicable',
+        discount: this.newOrder.discount || 0,
         requested_delivery: new Date(this.newOrder.requested_delivery).toISOString(),
         items: this.newOrder.items.map(item => ({
           menu_item_id: parseInt(item.menu_item_id),
@@ -1187,6 +1214,223 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
       }
     } catch (error) {
       return 'time-left-invalid';
+    }
+  }
+
+  /**
+   * Edit order functionality
+   */
+  editOrder(order: Order) {
+    console.log('🔄 Opening edit modal for order:', order.id);
+    console.log('📦 Order items received:', order.items);
+    console.log('📦 Items count:', order.items?.length || 0);
+    if (order.items && order.items.length > 0) {
+      console.log('📦 First item sample:', order.items[0]);
+    }
+    
+    // Create a copy of the order for editing
+    this.editingOrder = { ...order };
+    
+    // Ensure discount field exists with default value
+    if (this.editingOrder.discount === undefined || this.editingOrder.discount === null) {
+      this.editingOrder.discount = 0;
+    }
+    
+    // Use the items from the order object directly - they now include detailed menu data
+    this.editOrderItems = order.items ? [...order.items] : [];
+    console.log('📦 Edit order items set to:', this.editOrderItems);
+    
+    // Load menu items for adding new items
+    this.loadMenuItemsForEdit();
+    
+    this.showEditOrderModal = true;
+  }
+
+  closeEditOrderModal() {
+    this.showEditOrderModal = false;
+    this.editingOrder = null;
+    this.editOrderItems = [];
+    this.submittingEditOrder = false;
+    this.resetEditOrderItemsForm();
+  }
+
+  resetEditOrderItemsForm() {
+    this.editSelectedMenuItemId = '';
+    this.editSelectedMenuItem = null;
+    this.editSelectedVariantId = '';
+    this.editSelectedVariant = null;
+    this.editSelectedQuantity = 1;
+  }
+
+  onEditOrderModalOverlayClick(event: MouseEvent) {
+    // Only close if clicking on the overlay itself, not the modal content
+    if (event.target === event.currentTarget) {
+      this.closeEditOrderModal();
+    }
+  }
+
+
+  loadOrderItemsForEdit(orderId: string) {
+    this.http.get<OrderItem[]>(`${environment.apiUrl}/admin/orders/${orderId}/items`)
+      .subscribe({
+        next: (items) => {
+          this.editOrderItems = items;
+        },
+        error: (err) => {
+          console.error('Error loading order items:', err);
+          this.editOrderItems = [];
+        }
+      });
+  }
+
+  loadMenuItemsForEdit() {
+    console.log('🔍 Loading menu items for edit. Current menuItems length:', this.menuItems.length);
+    if (this.menuItems.length === 0) {
+      console.log('📡 Fetching menu items from service...');
+      this.menuService.getMenuItems().subscribe({
+        next: (items) => {
+          this.menuItems = items;
+          console.log('✅ Menu items loaded for edit:', this.menuItems.length, 'items');
+        },
+        error: (err) => {
+          console.error('❌ Error loading menu items:', err);
+        }
+      });
+    } else {
+      console.log('✅ Menu items already loaded:', this.menuItems.length, 'items');
+    }
+  }
+
+  getFormattedDateTime(dateString: string): string {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toISOString().slice(0, 16);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  getEditOrderItemsTotal(): number {
+    return this.editOrderItems.reduce((total, item) => {
+      return total + (item.price * item.quantity);
+    }, 0);
+  }
+
+  calculateEditOrderTotal() {
+    if (!this.editingOrder) return;
+    
+    const itemsTotal = this.getEditOrderItemsTotal();
+    const deliveryFee = this.editingOrder.delivery_option === 'delivery' ? (this.editingOrder.delivery_fee || 0) : 0;
+    const discount = this.editingOrder.discount || 0;
+    
+    this.editingOrder.total_price = Math.max(0, itemsTotal + deliveryFee - discount);
+  }
+
+  submitEditOrder() {
+    if (!this.editingOrder) return;
+    
+    this.submittingEditOrder = true;
+    
+    // Calculate final total before submitting
+    this.calculateEditOrderTotal();
+    
+    const updateData = {
+      customer_name: this.editingOrder.customer_name,
+      phone: this.editingOrder.phone,
+      delivery_option: this.editingOrder.delivery_option,
+      address: this.editingOrder.address,
+      plus_code: this.editingOrder.plus_code,
+      payment_method: this.editingOrder.payment_method,
+      delivery_fee: this.editingOrder.delivery_fee || 0,
+      discount: this.editingOrder.discount || 0,
+      total_price: this.editingOrder.total_price,
+      status: this.editingOrder.status,
+      payment_status: this.editingOrder.payment_status,
+      requested_delivery: this.editingOrder.requested_delivery,
+      items: this.editOrderItems.map(item => ({
+        menu_item_id: item.menu_item_id === 'unknown' ? null : item.menu_item_id,
+        variant_name: item.variant_name,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    };
+
+    this.http.put(`${environment.apiUrl}/admin/orders/${this.editingOrder.id}`, updateData, {
+      headers: this.authService.getAuthHeaders()
+    })
+      .subscribe({
+        next: (response) => {
+          console.log('Order updated successfully:', response);
+          this.showNotification('success', 'Order Updated', 'Order has been updated successfully.');
+          this.loadOrders(); // Reload orders to show changes
+          this.closeEditOrderModal();
+        },
+        error: (err) => {
+          console.error('Error updating order:', err);
+          this.showNotification('error', 'Update Failed', 'Failed to update order. Please try again.');
+          this.submittingEditOrder = false;
+        }
+      });
+  }
+
+  /**
+   * Edit order items functionality
+   */
+  onEditMenuItemChange() {
+    this.editSelectedMenuItem = this.menuItems.find(item => item.id.toString() === this.editSelectedMenuItemId) || null;
+    this.editSelectedVariantId = '';
+    this.editSelectedVariant = null;
+  }
+
+  onEditVariantChange() {
+    if (this.editSelectedMenuItem) {
+      this.editSelectedVariant = this.editSelectedMenuItem.variants.find(variant => variant.id.toString() === this.editSelectedVariantId) || null;
+    }
+  }
+
+  addItemToEditOrder() {
+    console.log('🍽️ Adding item to edit order...');
+    console.log('Selected MenuItem:', this.editSelectedMenuItem);
+    console.log('Selected Variant:', this.editSelectedVariant);
+    console.log('Selected Quantity:', this.editSelectedQuantity);
+    
+    if (!this.editSelectedMenuItem || !this.editSelectedVariant || this.editSelectedQuantity < 1) {
+      console.log('❌ Cannot add item - missing required data');
+      return;
+    }
+
+    const newItem: OrderItem = {
+      menu_item_id: this.editSelectedMenuItem.id.toString(),
+      name: this.editSelectedMenuItem.name,
+      description: this.editSelectedMenuItem.description,
+      image_url: this.editSelectedMenuItem.image_url,
+      variant_name: this.editSelectedVariant.name,
+      quantity: this.editSelectedQuantity,
+      price: this.editSelectedVariant.price
+    };
+
+    console.log('➕ Adding new item:', newItem);
+    this.editOrderItems.push(newItem);
+    this.resetEditOrderItemsForm();
+    this.calculateEditOrderTotal();
+    console.log('✅ Item added successfully. Total items:', this.editOrderItems.length);
+  }
+
+  removeItemFromEditOrder(index: number) {
+    this.editOrderItems.splice(index, 1);
+    this.calculateEditOrderTotal();
+  }
+
+  increaseItemQuantity(index: number) {
+    this.editOrderItems[index].quantity++;
+    this.calculateEditOrderTotal();
+  }
+
+  decreaseItemQuantity(index: number) {
+    if (this.editOrderItems[index].quantity > 1) {
+      this.editOrderItems[index].quantity--;
+      this.calculateEditOrderTotal();
     }
   }
 

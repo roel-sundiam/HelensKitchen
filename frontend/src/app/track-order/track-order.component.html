@@ -145,9 +145,6 @@
           <div class="delivery-item" *ngIf="order.delivery_option === 'delivery'">
             <strong>Delivery Address:</strong> {{ order.address }}
           </div>
-          <div class="delivery-item" *ngIf="order.delivery_option === 'pickup'">
-            <strong>Pickup Location:</strong> {{ order.address }}
-          </div>
           <div class="delivery-item">
             <strong>Requested Time:</strong> {{ order.requested_delivery | date:'medium' }}
           </div>
@@ -174,6 +171,12 @@
             <span *ngIf="order.delivery_fee_status === 'set'">
               ₱{{ order.delivery_fee.toFixed(2) }}
             </span>
+          </div>
+          
+          <!-- Discount Section -->
+          <div class="total-item discount-item" *ngIf="order.discount && order.discount > 0">
+            <span>Discount:</span>
+            <span class="discount-amount">-₱{{ order.discount.toFixed(2) }}</span>
           </div>
           
           <!-- Delivery Status Message -->

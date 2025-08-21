@@ -150,9 +150,10 @@
             />
           </td>
           <td>
-            <span class="time-left" [ngClass]="getTimeLeftClass(order)">
+            <span class="time-left" [ngClass]="getTimeLeftClass(order)" *ngIf="order.status !== 'Delivered'">
               {{ getTimeLeft(order) }}
             </span>
+            <span *ngIf="order.status === 'Delivered'" class="delivered-status">—</span>
           </td>
           <td>
             <select
@@ -185,6 +186,16 @@
               >
                 <span *ngIf="!loadingOrderDetails">👁️ View</span>
                 <span *ngIf="loadingOrderDetails">⏳</span>
+              </button>
+              
+              <button 
+                class="edit-order-btn"
+                (click)="editOrder(order)"
+                [disabled]="loadingOrderDetails"
+                type="button"
+                title="Edit order"
+              >
+                ✏️ Edit
               </button>
               
               <button 
@@ -281,6 +292,348 @@
         <div class="button-group">
           <button type="button" class="cancel-btn" (click)="closeDeliveryFeeModal()">Cancel</button>
           <button type="submit" class="confirm-btn" [disabled]="deliveryFeeForm.invalid">Set Fee</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Order Modal -->
+<div class="modal-overlay" *ngIf="showEditOrderModal" (click)="onEditOrderModalOverlayClick($event)">
+  <div class="edit-order-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>✏️ Edit Order #{{ editingOrder?.id }}</h3>
+      <button class="close-btn" (click)="closeEditOrderModal()" type="button">✕</button>
+    </div>
+    
+    <div class="modal-body">
+      <form (ngSubmit)="submitEditOrder()" #editOrderForm="ngForm">
+        <!-- Customer Information -->
+        <div class="form-section">
+          <h4>Customer Information</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editCustomerName">Customer Name *</label>
+              <input 
+                type="text" 
+                id="editCustomerName"
+                name="editCustomerName"
+                [(ngModel)]="editingOrder.customer_name" 
+                required 
+                class="form-input"
+                placeholder="Enter customer name"
+                #editCustomerNameField="ngModel"
+              >
+              <div class="error-message" *ngIf="editCustomerNameField.invalid && editCustomerNameField.touched">
+                Customer name is required
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="editCustomerPhone">Phone Number *</label>
+              <input 
+                type="tel" 
+                id="editCustomerPhone"
+                name="editCustomerPhone"
+                [(ngModel)]="editingOrder.phone" 
+                required 
+                class="form-input"
+                placeholder="Enter phone number"
+                #editCustomerPhoneField="ngModel"
+              >
+              <div class="error-message" *ngIf="editCustomerPhoneField.invalid && editCustomerPhoneField.touched">
+                Phone number is required
+              </div>
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label>Order Type *</label>
+            <div class="radio-group">
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  name="editDeliveryOption" 
+                  value="delivery" 
+                  [(ngModel)]="editingOrder.delivery_option"
+                >
+                🚚 Delivery
+              </label>
+              <label class="radio-option">
+                <input 
+                  type="radio" 
+                  name="editDeliveryOption" 
+                  value="pickup" 
+                  [(ngModel)]="editingOrder.delivery_option"
+                >
+                🏪 Pickup
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Delivery Details -->
+        <div class="form-section" *ngIf="editingOrder.delivery_option === 'delivery'">
+          <h4>Delivery Details</h4>
+          <div class="form-group">
+            <label for="editDeliveryAddress">Address *</label>
+            <textarea 
+              id="editDeliveryAddress"
+              name="editDeliveryAddress"
+              [(ngModel)]="editingOrder.address" 
+              [required]="editingOrder.delivery_option === 'delivery'"
+              class="form-input"
+              placeholder="Enter delivery address"
+              rows="3"
+              #editDeliveryAddressField="ngModel"
+            ></textarea>
+            <div class="error-message" *ngIf="editDeliveryAddressField.invalid && editDeliveryAddressField.touched">
+              Address is required for delivery orders
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="editPlusCode">Plus Code (Optional)</label>
+            <input 
+              type="text" 
+              id="editPlusCode"
+              name="editPlusCode"
+              [(ngModel)]="editingOrder.plus_code" 
+              class="form-input"
+              placeholder="Enter Plus Code if available"
+            >
+          </div>
+        </div>
+
+        <!-- Delivery Date & Time -->
+        <div class="form-section">
+          <h4>{{ editingOrder.delivery_option === 'delivery' ? 'Delivery' : 'Pickup' }} Details</h4>
+          <div class="form-group">
+            <label for="editDeliveryDate">{{ editingOrder.delivery_option === 'delivery' ? 'Delivery' : 'Pickup' }} Date & Time *</label>
+            <input 
+              type="datetime-local" 
+              id="editDeliveryDate"
+              name="editDeliveryDate"
+              [ngModel]="getFormattedDateTime(editingOrder.requested_delivery)"
+              (ngModelChange)="editingOrder.requested_delivery = $event"
+              required 
+              class="form-input"
+              #editDeliveryDateField="ngModel"
+            >
+            <div class="error-message" *ngIf="editDeliveryDateField.invalid && editDeliveryDateField.touched">
+              Date and time is required
+            </div>
+          </div>
+        </div>
+
+        <!-- Order Items Section -->
+        <div class="form-section">
+          <h4>Order Items</h4>
+          
+          <!-- Current Order Items -->
+          <div class="current-items-list" *ngIf="editOrderItems.length > 0">
+            <h5>Current Items:</h5>
+            <div class="order-item" *ngFor="let item of editOrderItems; let i = index">
+              <div class="item-details">
+                <span class="item-name">{{ item.name }}</span>
+                <span class="item-variant">{{ item.variant_name }}</span>
+                <div class="quantity-controls">
+                  <button type="button" class="qty-btn" (click)="decreaseItemQuantity(i)" [disabled]="item.quantity <= 1">-</button>
+                  <span class="item-quantity">Qty: {{ item.quantity }}</span>
+                  <button type="button" class="qty-btn" (click)="increaseItemQuantity(i)">+</button>
+                </div>
+                <span class="item-price">₱{{ (item.price * item.quantity).toFixed(2) }}</span>
+              </div>
+              <button 
+                type="button" 
+                class="remove-item-btn"
+                (click)="removeItemFromEditOrder(i)"
+                title="Remove item"
+              >
+                🗑️
+              </button>
+            </div>
+            <div class="items-subtotal">
+              <strong>Items Subtotal: ₱{{ getEditOrderItemsTotal().toFixed(2) }}</strong>
+            </div>
+          </div>
+
+          <!-- Add New Items -->
+          <div class="add-items-section">
+            <h5>Add New Items:</h5>
+            <div class="menu-item-selection">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="editMenuItemSelect">Select Item</label>
+                  <select 
+                    id="editMenuItemSelect"
+                    [(ngModel)]="editSelectedMenuItemId" 
+                    (change)="onEditMenuItemChange()"
+                    name="editMenuItemSelect"
+                    class="form-select"
+                  >
+                    <option value="">Choose a menu item</option>
+                    <option *ngFor="let item of menuItems" [value]="item.id">
+                      {{ item.name }} - ₱{{ item.base_price.toFixed(2) }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="form-group" *ngIf="editSelectedMenuItem">
+                  <label for="editVariantSelect">Select Variant</label>
+                  <select 
+                    id="editVariantSelect"
+                    [(ngModel)]="editSelectedVariantId" 
+                    (change)="onEditVariantChange()"
+                    name="editVariantSelect"
+                    class="form-select"
+                  >
+                    <option value="">Choose variant</option>
+                    <option *ngFor="let variant of editSelectedMenuItem.variants" [value]="variant.id">
+                      {{ variant.name }} - ₱{{ variant.price.toFixed(2) }}
+                    </option>
+                  </select>
+                </div>
+                
+                <div class="form-group" *ngIf="editSelectedVariant">
+                  <label for="editQuantity">Quantity</label>
+                  <input 
+                    type="number" 
+                    id="editQuantity"
+                    [(ngModel)]="editSelectedQuantity" 
+                    name="editQuantity"
+                    min="1"
+                    class="form-input quantity-input"
+                    placeholder="1"
+                  >
+                </div>
+                
+                <div class="form-group" *ngIf="editSelectedVariant">
+                  <label>&nbsp;</label>
+                  <button 
+                    type="button" 
+                    class="add-item-btn"
+                    (click)="addItemToEditOrder()"
+                    [disabled]="!editSelectedMenuItem || !editSelectedVariant || editSelectedQuantity < 1"
+                  >
+                    Add Item
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Payment & Pricing Details -->
+        <div class="form-section">
+          <h4>Payment & Pricing Details</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editPaymentMethod">Payment Method *</label>
+              <select 
+                id="editPaymentMethod"
+                name="editPaymentMethod"
+                [(ngModel)]="editingOrder.payment_method" 
+                required 
+                class="form-select"
+                #editPaymentMethodField="ngModel"
+              >
+                <option value="">Select payment method</option>
+                <option value="Cash">Cash</option>
+                <option value="GCash">GCash</option>
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="Credit Card">Credit Card</option>
+              </select>
+              <div class="error-message" *ngIf="editPaymentMethodField.invalid && editPaymentMethodField.touched">
+                Payment method is required
+              </div>
+            </div>
+            
+            <div class="form-group" *ngIf="editingOrder.delivery_option === 'delivery'">
+              <label for="editDeliveryFee">Delivery Fee (₱)</label>
+              <input 
+                type="number" 
+                id="editDeliveryFee"
+                name="editDeliveryFee"
+                [(ngModel)]="editingOrder.delivery_fee" 
+                min="0" 
+                step="0.01" 
+                class="form-input"
+                placeholder="0.00"
+                (input)="calculateEditOrderTotal()"
+              >
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editDiscount">Discount (₱)</label>
+              <input 
+                type="number" 
+                id="editDiscount"
+                name="editDiscount"
+                [(ngModel)]="editingOrder.discount" 
+                min="0" 
+                step="0.01" 
+                class="form-input"
+                placeholder="0.00"
+                (input)="calculateEditOrderTotal()"
+              >
+            </div>
+            
+            <div class="form-group">
+              <label for="editOrderStatus">Order Status</label>
+              <select 
+                id="editOrderStatus"
+                name="editOrderStatus"
+                [(ngModel)]="editingOrder.status" 
+                class="form-select"
+              >
+                <option *ngFor="let status of statuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editPaymentStatus">Payment Status</label>
+              <select 
+                id="editPaymentStatus"
+                name="editPaymentStatus"
+                [(ngModel)]="editingOrder.payment_status" 
+                class="form-select"
+              >
+                <option *ngFor="let status of paymentStatuses" [value]="status">{{ status }}</option>
+              </select>
+            </div>
+          </div>
+          
+          <div class="total-section">
+            <div class="total-breakdown">
+              <div class="total-line">Items: ₱{{ getEditOrderItemsTotal().toFixed(2) }}</div>
+              <div class="total-line" *ngIf="editingOrder.delivery_option === 'delivery'">
+                Delivery: ₱{{ (editingOrder.delivery_fee || 0).toFixed(2) }}
+              </div>
+              <div class="total-line" *ngIf="editingOrder.discount > 0">
+                Discount: -₱{{ (editingOrder.discount || 0).toFixed(2) }}
+              </div>
+              <div class="total-line total-final">
+                <strong>Total: ₱{{ editingOrder.total_price.toFixed(2) }}</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="button-group">
+          <button type="button" class="cancel-btn" (click)="closeEditOrderModal()">Cancel</button>
+          <button 
+            type="submit" 
+            class="confirm-btn" 
+            [disabled]="editOrderForm.invalid || submittingEditOrder"
+          >
+            <span *ngIf="!submittingEditOrder">Save Changes</span>
+            <span *ngIf="submittingEditOrder">Saving...</span>
+          </button>
         </div>
       </form>
     </div>
@@ -564,6 +917,23 @@
           
           <div class="form-row">
             <div class="form-group">
+              <label for="orderDiscount">Discount (₱)</label>
+              <input 
+                type="number" 
+                id="orderDiscount"
+                name="orderDiscount"
+                [(ngModel)]="newOrder.discount" 
+                min="0" 
+                step="0.01" 
+                class="form-input"
+                placeholder="0.00"
+                (input)="calculateTotal()"
+              >
+            </div>
+          </div>
+          
+          <div class="form-row">
+            <div class="form-group">
               <label for="orderStatus">Order Status</label>
               <select 
                 id="orderStatus"
@@ -593,6 +963,9 @@
               <div class="total-line">Items: ₱{{ getItemsSubtotal().toFixed(2) }}</div>
               <div class="total-line" *ngIf="newOrder.delivery_option === 'delivery'">
                 Delivery: ₱{{ (newOrder.delivery_fee || 0).toFixed(2) }}
+              </div>
+              <div class="total-line" *ngIf="newOrder.discount && newOrder.discount > 0">
+                Discount: -₱{{ (newOrder.discount || 0).toFixed(2) }}
               </div>
               <div class="total-line total-final">
                 <strong>Total: ₱{{ getFinalTotal().toFixed(2) }}</strong>

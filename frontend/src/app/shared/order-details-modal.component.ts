@@ -25,6 +25,7 @@ interface OrderDetails {
   delivery_option: string;
   delivery_fee: number;
   delivery_fee_status: 'pending' | 'set' | 'not_applicable';
+  discount: number;
   plus_code?: string;
   items: OrderItem[];
 }
@@ -150,6 +151,12 @@ interface OrderDetails {
                 <span class="not-applicable">N/A (Store Pickup)</span>
               </div>
               
+              <!-- Discount Section -->
+              <div class="total-item discount-item" *ngIf="getDiscount() > 0">
+                <span>Discount:</span>
+                <span class="discount-amount">-₱{{ getDiscount().toFixed(2) }}</span>
+              </div>
+              
               <div class="total-item final-total">
                 <strong>
                   <span>Total Amount:</span>
@@ -206,14 +213,20 @@ export class OrderDetailsModalComponent implements OnChanges {
   getFoodTotal(): number {
     if (!this.orderDetails) return 0;
     
-    // If delivery fee is set, subtract it from total to get food total
+    // Calculate food total by adding back delivery fee and discount to the total price
+    // Formula: food_total = total_price + discount - delivery_fee
+    let foodTotal = this.orderDetails.total_price;
+    
+    // Add back discount to get the original food total
+    foodTotal += this.getDiscount();
+    
+    // Subtract delivery fee if it's set
     if (this.getDeliveryOption() === 'delivery' && 
         this.getDeliveryFeeStatus() === 'set') {
-      return this.orderDetails.total_price - this.getDeliveryFee();
+      foodTotal -= this.getDeliveryFee();
     }
     
-    // For pickup orders or when delivery fee is not set, total_price is the food total
-    return this.orderDetails.total_price;
+    return Math.max(0, foodTotal); // Ensure non-negative
   }
 
   getDeliveryOption(): string {
@@ -246,5 +259,10 @@ export class OrderDetailsModalComponent implements OnChanges {
     } else {
       return 'pending';
     }
+  }
+
+  getDiscount(): number {
+    if (!this.orderDetails) return 0;
+    return this.orderDetails.discount || 0;
   }
 }

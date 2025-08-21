@@ -38,6 +38,7 @@ interface Order {
   total_price: number;
   delivery_fee: number;
   delivery_fee_status: 'pending' | 'set' | 'not_applicable';
+  discount: number;
   status: string;
   payment_status: string;
   requested_delivery: string;

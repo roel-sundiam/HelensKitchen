@@ -945,6 +945,7 @@ async function initServer() {
 
     // GET /api/admin/orders
     app.get("/api/admin/orders", requirePermission('orders.view'), async (req, res) => {
+      console.log('🚨 ORDERS ENDPOINT CALLED! 🚨');
       try {
         const filter = {};
         
@@ -956,25 +957,157 @@ async function initServer() {
           filter.payment_status = req.query.payment_status;
         }
 
-        const orders = await Order.find(filter).sort({ createdAt: -1 });
+        console.log('📋 Fetching orders with filter:', filter);
+        const orders = await Order.find(filter).sort({ createdAt: -1 }).populate('items.menu_item_id');
+        console.log(`📋 Found ${orders.length} orders`);
         
         // Convert MongoDB documents to the expected format
-        const formattedOrders = orders.map(order => ({
-          id: order._id,
-          customer_name: order.customer_name,
-          phone: order.phone,
-          delivery_option: order.delivery_option,
-          address: order.address,
-          plus_code: order.plus_code || null,
-          payment_method: order.payment_method,
-          total_price: order.total_price,
-          delivery_fee: order.delivery_fee,
-          delivery_fee_status: order.delivery_fee_status,
-          status: order.status,
-          payment_status: order.payment_status,
-          requested_delivery: order.requested_delivery,
-          created_at: order.createdAt
+        const formattedOrders = await Promise.all(orders.map(async (order) => {
+          console.log(`📦 Processing order ${order._id}`);
+          console.log(`📦 Raw order.items:`, order.items);
+          console.log(`📦 Items count: ${order.items?.length || 0}`);
+          
+          // If no items, return order with empty items array
+          if (!order.items || order.items.length === 0) {
+            console.log(`📦 Order ${order._id} has no items, returning empty array`);
+            const result = {
+              id: order._id,
+              customer_name: order.customer_name,
+              phone: order.phone,
+              delivery_option: order.delivery_option,
+              address: order.address,
+              plus_code: order.plus_code || null,
+              payment_method: order.payment_method,
+              total_price: order.total_price,
+              delivery_fee: order.delivery_fee,
+              delivery_fee_status: order.delivery_fee_status,
+              discount: order.discount || 0,
+              status: order.status,
+              payment_status: order.payment_status,
+              requested_delivery: order.requested_delivery,
+              created_at: order.createdAt,
+              items: []
+            };
+            return result;
+          }
+          
+          // Process order items with menu details
+          const itemsWithDetails = await Promise.all(order.items.map(async (item, index) => {
+            console.log(`📦 Processing item ${index}:`, { 
+              menu_item_id: item.menu_item_id, 
+              isPopulated: !!(item.menu_item_id && item.menu_item_id._id),
+              variant_name: item.variant_name 
+            });
+            // Handle cases where menu_item_id might be populated
+            if (item.menu_item_id && typeof item.menu_item_id === 'object' && item.menu_item_id._id) {
+              return {
+                menu_item_id: item.menu_item_id._id.toString(),
+                name: item.menu_item_id.name,
+                description: item.menu_item_id.description,
+                image_url: item.menu_item_id.image_url,
+                variant_name: item.variant_name,
+                quantity: item.quantity,
+                price: item.price
+              };
+            } else if (item.menu_item_id) {
+              // menu_item_id exists but not populated - fetch menu item manually
+              try {
+                console.log('🔍 Fetching menu item manually for:', item.menu_item_id);
+                const menuItem = await MenuItem.findById(item.menu_item_id);
+                if (menuItem) {
+                  console.log('✅ Found menu item:', menuItem.name);
+                  return {
+                    menu_item_id: menuItem._id.toString(),
+                    name: menuItem.name,
+                    description: menuItem.description,
+                    image_url: menuItem.image_url,
+                    variant_name: item.variant_name,
+                    quantity: item.quantity,
+                    price: item.price
+                  };
+                } else {
+                  console.log('❌ Menu item not found for ID:', item.menu_item_id);
+                }
+              } catch (err) {
+                console.error('Error fetching menu item by ID:', err);
+              }
+              
+              // If direct lookup failed, try by variant name
+              try {
+                const variant = await MenuVariant.findOne({ 
+                  name: item.variant_name 
+                }).populate('menu_item_id');
+                
+                if (variant && variant.menu_item_id) {
+                  return {
+                    menu_item_id: variant.menu_item_id._id.toString(),
+                    name: variant.menu_item_id.name,
+                    description: variant.menu_item_id.description,
+                    image_url: variant.menu_item_id.image_url,
+                    variant_name: item.variant_name,
+                    quantity: item.quantity,
+                    price: item.price
+                  };
+                }
+              } catch (err) {
+                console.warn('Error fetching variant for item:', err);
+              }
+              
+              // Final fallback - use variant name as item name if available
+              const itemName = item.variant_name || 'Unknown Item';
+              return {
+                menu_item_id: item.menu_item_id?.toString() || 'unknown',
+                name: itemName,
+                description: `Item details not available (${itemName})`,
+                image_url: '/images/placeholder.jpg',
+                variant_name: item.variant_name || 'Unknown Variant',
+                quantity: item.quantity,
+                price: item.price
+              };
+            } else {
+              // No menu_item_id at all - use variant name as item name
+              const itemName = item.variant_name || 'Unknown Item';
+              return {
+                menu_item_id: 'unknown',
+                name: itemName,
+                description: `Item details not available (${itemName})`,
+                image_url: '/images/placeholder.jpg',
+                variant_name: item.variant_name || 'Unknown Variant',
+                quantity: item.quantity,
+                price: item.price
+              };
+            }
+          }));
+
+          console.log(`📦 Final itemsWithDetails for order ${order._id}:`, itemsWithDetails);
+          const result = {
+            id: order._id,
+            customer_name: order.customer_name,
+            phone: order.phone,
+            delivery_option: order.delivery_option,
+            address: order.address,
+            plus_code: order.plus_code || null,
+            payment_method: order.payment_method,
+            total_price: order.total_price,
+            delivery_fee: order.delivery_fee,
+            delivery_fee_status: order.delivery_fee_status,
+            discount: order.discount || 0,
+            status: order.status,
+            payment_status: order.payment_status,
+            requested_delivery: order.requested_delivery,
+            created_at: order.createdAt,
+            items: itemsWithDetails
+          };
+          console.log(`📦 Final order result:`, { id: result.id, items_count: result.items?.length || 0 });
+          return result;
         }));
+        
+        console.log(`📤 Sending ${formattedOrders.length} orders to frontend`);
+        console.log(`📤 First order sample:`, formattedOrders[0] ? {
+          id: formattedOrders[0].id,
+          items_count: formattedOrders[0].items?.length || 0,
+          items_sample: formattedOrders[0].items?.[0] || null
+        } : 'No orders');
         
         res.json(formattedOrders);
       } catch (error) {
@@ -1299,6 +1432,7 @@ async function initServer() {
           total_price: order.total_price,
           delivery_fee: deliveryFee,
           delivery_fee_status: deliveryFeeStatus,
+          discount: order.discount || 0,
           quotation_id: order.quotation_id,
           status: order.status,
           payment_status: order.payment_status,
@@ -1349,6 +1483,180 @@ async function initServer() {
         });
       } catch (error) {
         console.error('Database error deleting order:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // PUT /api/admin/orders/:id - Update an order
+    console.log('📝 Registering PUT /api/admin/orders/:id endpoint');
+    app.put("/api/admin/orders/:id", requirePermission('orders.update'), async (req, res) => {
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      try {
+        console.log(`Attempting to update order ${id} with data:`, updateData);
+        
+        const order = await Order.findById(id);
+        
+        if (!order) {
+          console.log(`No order found for ID ${id}`);
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Update the order fields
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] !== undefined) {
+            order[key] = updateData[key];
+          }
+        });
+
+        // Special handling for items array if provided
+        if (updateData.items && Array.isArray(updateData.items)) {
+          order.items = updateData.items.map(item => ({
+            menu_item_id: item.menu_item_id || null,
+            variant_name: item.variant_name,
+            quantity: item.quantity,
+            price: item.price
+          }));
+        }
+
+        // Save the updated order
+        const updatedOrder = await order.save();
+        
+        console.log(`Order ${id} updated successfully`);
+        res.json({ 
+          message: "Order updated successfully",
+          order: {
+            id: updatedOrder._id,
+            customer_name: updatedOrder.customer_name,
+            phone: updatedOrder.phone,
+            delivery_option: updatedOrder.delivery_option,
+            address: updatedOrder.address,
+            plus_code: updatedOrder.plus_code,
+            payment_method: updatedOrder.payment_method,
+            total_price: updatedOrder.total_price,
+            delivery_fee: updatedOrder.delivery_fee,
+            discount: updatedOrder.discount,
+            status: updatedOrder.status,
+            payment_status: updatedOrder.payment_status,
+            requested_delivery: updatedOrder.requested_delivery
+          }
+        });
+
+      } catch (error) {
+        console.error('Database error updating order:', error);
+        res.status(500).json({ error: "Database error" });
+      }
+    });
+
+    // GET /api/admin/orders/debug - Debug endpoint to check order population
+    console.log('📝 Registering GET /api/admin/orders/debug endpoint');
+    app.get("/api/admin/orders/debug", requirePermission('orders.view'), async (req, res) => {
+      try {
+        console.log('🐛 Debug endpoint called');
+        
+        // Get one recent order
+        const order = await Order.findOne().sort({ createdAt: -1 });
+        if (!order) {
+          return res.json({ message: 'No orders found' });
+        }
+        
+        console.log('🐛 Raw order items:', order.items);
+        
+        // Try to populate
+        const populatedOrder = await Order.findById(order._id).populate('items.menu_item_id');
+        console.log('🐛 Populated order items:', populatedOrder.items);
+        
+        res.json({
+          raw_order: {
+            id: order._id,
+            items: order.items
+          },
+          populated_order: {
+            id: populatedOrder._id,
+            items: populatedOrder.items
+          }
+        });
+      } catch (error) {
+        console.error('🐛 Debug error:', error);
+        res.status(500).json({ error: error.message });
+      }
+    });
+
+    // GET /api/admin/orders/:id/items - Get order items for editing
+    console.log('📝 Registering GET /api/admin/orders/:id/items endpoint');
+    app.get("/api/admin/orders/:id/items", requirePermission('orders.view'), async (req, res) => {
+      const { id } = req.params;
+      
+      if (!id) {
+        return res.status(400).json({ error: "Order ID is required" });
+      }
+
+      try {
+        console.log(`Fetching items for order ${id}`);
+        
+        const order = await Order.findById(id).populate('items.menu_item_id');
+        
+        if (!order) {
+          console.log(`No order found for ID ${id}`);
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        // Process order items with menu details
+        const itemsWithDetails = await Promise.all(order.items.map(async (item) => {
+          if (item.menu_item_id && item.menu_item_id._id) {
+            return {
+              menu_item_id: item.menu_item_id._id,
+              name: item.menu_item_id.name,
+              description: item.menu_item_id.description,
+              image_url: item.menu_item_id.image_url,
+              variant_name: item.variant_name,
+              quantity: item.quantity,
+              price: item.price
+            };
+          } else {
+            // Fallback for legacy orders
+            try {
+              const variant = await MenuVariant.findOne({ 
+                name: item.variant_name 
+              }).populate('menu_item_id');
+              
+              if (variant && variant.menu_item_id) {
+                return {
+                  menu_item_id: variant.menu_item_id._id,
+                  name: variant.menu_item_id.name,
+                  description: variant.menu_item_id.description,
+                  image_url: variant.menu_item_id.image_url,
+                  variant_name: item.variant_name,
+                  quantity: item.quantity,
+                  price: item.price
+                };
+              }
+            } catch (err) {
+              console.warn('Error fetching variant for legacy item:', err);
+            }
+            
+            // Final fallback
+            return {
+              menu_item_id: null,
+              name: 'Unknown Item',
+              description: 'Item details not available',
+              image_url: '/images/placeholder.jpg',
+              variant_name: item.variant_name || 'Unknown Variant',
+              quantity: item.quantity,
+              price: item.price
+            };
+          }
+        }));
+        
+        console.log(`Order items found and returned for order: ${id}`);
+        res.json(itemsWithDetails);
+      } catch (error) {
+        console.error('Database error fetching order items:', error);
         res.status(500).json({ error: "Database error" });
       }
     });
@@ -2192,7 +2500,7 @@ async function initServer() {
 
     // POST /api/orders - Submit new order
     app.post("/api/orders", async (req, res) => {
-      const { customer_name, phone, delivery_option, address, plus_code, payment_method, requested_delivery, items, total_price, delivery_fee, delivery_fee_status, quotation_id } = req.body;
+      const { customer_name, phone, delivery_option, address, plus_code, payment_method, requested_delivery, items, total_price, delivery_fee, delivery_fee_status, discount, quotation_id } = req.body;
       
       if (!customer_name || !phone || !address || !payment_method || !requested_delivery || !items || !total_price) {
         return res.status(400).json({ error: "All required fields must be provided" });
@@ -2209,14 +2517,36 @@ async function initServer() {
           total_price,
           delivery_fee: delivery_fee || 0,
           delivery_fee_status: delivery_fee_status || 'pending',
+          discount: discount || 0,
           quotation_id: quotation_id || null,
           requested_delivery: new Date(requested_delivery),
-          items: items.map(item => ({
-            menu_item_id: item.menuItemId,
-            variant_name: item.variant,
-            quantity: item.quantity,
-            price: item.price
-          }))
+          items: items.map(item => {
+            const menuItemId = item.menu_item_id || item.menuItemId;
+            console.log('Processing order item:', { 
+              menuItemId, 
+              menuItemIdType: typeof menuItemId,
+              variant: item.variant, 
+              quantity: item.quantity, 
+              price: item.price 
+            });
+            
+            // Ensure menu_item_id is converted to ObjectId for proper population
+            let objectId;
+            try {
+              objectId = require('mongoose').Types.ObjectId(menuItemId);
+              console.log('✅ Successfully converted to ObjectId:', objectId);
+            } catch (err) {
+              console.error('❌ Failed to convert to ObjectId:', menuItemId, err.message);
+              objectId = menuItemId; // fallback to original value
+            }
+            
+            return {
+              menu_item_id: objectId,
+              variant_name: item.variant,
+              quantity: item.quantity,
+              price: item.price
+            };
+          })
         });
 
         console.log('Order created successfully:', order._id);
@@ -2334,6 +2664,7 @@ async function initServer() {
           total_price: order.total_price,
           delivery_fee: order.delivery_fee || 0,
           delivery_fee_status: order.delivery_fee_status || 'pending',
+          discount: order.discount || 0,
           quotation_id: order.quotation_id,
           status: order.status,
           payment_status: order.payment_status,

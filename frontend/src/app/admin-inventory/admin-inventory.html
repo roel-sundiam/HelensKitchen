@@ -287,11 +287,15 @@
                   name="movement_type" 
                   required>
             <option value="purchase">Purchase (Add Stock)</option>
+            <option value="usage">Usage (Used for Orders)</option>
             <option value="adjustment">Adjustment</option>
             <option value="waste">Waste (Remove Stock)</option>
           </select>
           <small class="form-help" *ngIf="stockForm.movement_type === 'purchase'">
             💰 An expense record will be automatically created for purchases based on cost per unit
+          </small>
+          <small class="form-help" *ngIf="stockForm.movement_type === 'usage'">
+            🍽️ Use negative quantity to reduce stock (e.g., -5 to use 5 units for orders)
           </small>
         </div>
         

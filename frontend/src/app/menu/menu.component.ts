@@ -535,9 +535,9 @@ export class MenuComponent implements OnInit, OnDestroy {
   private typeSecondLine() {
     const fullText = [
       'From our perfectly seasoned ',
-      ' and signature ',
-      ' to authentic ',
-      ', we bring you diverse, delicious dishes made with premium ingredients and genuine care.'
+      ' with authentic ',
+      ' and signature Chicken pasta ala ',
+      ', we bring you diverse, delicious dishes made with premium ingredients and served with love.'
     ];
     
     let charIndex = 0;
