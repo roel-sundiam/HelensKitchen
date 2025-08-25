@@ -297,7 +297,7 @@ export class MenuComponent implements OnInit, OnDestroy {
       return 'rice';
     } else if (name.includes('drink') || name.includes('beverage') || name.includes('soda') || name.includes('juice')) {
       return 'beverages';
-    } else if (name.includes('dessert') || name.includes('cake') || name.includes('ice cream')) {
+    } else if (name.includes('dessert') || name.includes('cake') || name.includes('ice cream') || name.includes('cookie')) {
       return 'desserts';
     }
     return 'others';
@@ -536,7 +536,7 @@ export class MenuComponent implements OnInit, OnDestroy {
     const fullText = [
       'From our perfectly seasoned ',
       ' with authentic ',
-      ' and signature Chicken pasta ala ',
+      ' and our signature Chicken pasta ala ',
       ', we bring you diverse, delicious dishes made with premium ingredients and served with love.'
     ];
     
