@@ -97,6 +97,28 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Helper method to format delivery date for display (handles timezone properly)
+  getFormattedDeliveryDate(dateString: string): string {
+    if (!dateString) return '';
+    try {
+      // Create date object and format for display using Asia/Manila timezone
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-US', {
+        month: '2-digit',
+        day: '2-digit', 
+        year: 'numeric',
+        timeZone: 'Asia/Manila'
+      }) + ' ' + date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Manila'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  }
+
   // Event handler for delivery date changes
   onDeliveryDateChange(order: Order, event: Event): void {
     const target = event.target as HTMLInputElement;
@@ -1306,7 +1328,10 @@ export class AdminOrdersComponent implements OnInit, OnDestroy {
     if (!dateString) return '';
     try {
       const date = new Date(dateString);
-      return date.toISOString().slice(0, 16);
+      // Adjust for timezone to prevent the 8-hour shift in datetime-local inputs
+      const offset = date.getTimezoneOffset();
+      const adjustedDate = new Date(date.getTime() - (offset * 60 * 1000));
+      return adjustedDate.toISOString().slice(0, 16);
     } catch (error) {
       return '';
     }

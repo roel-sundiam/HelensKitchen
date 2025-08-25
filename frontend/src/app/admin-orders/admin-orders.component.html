@@ -142,7 +142,7 @@
           <td>
             <input
               type="text"
-              [value]="order.requested_delivery | date : 'short'"
+              [value]="getFormattedDeliveryDate(order.requested_delivery)"
               (change)="onDeliveryDateChange(order, $event)"
               class="delivery-date-input"
               title="Edit delivery date (MM/DD/YYYY HH:MM format)"
